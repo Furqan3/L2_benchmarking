@@ -29,9 +29,14 @@ from bench.core.networks import (
 )
 from bench.core.wallet import ACCOUNTS_CONFIG, check_address
 
-# Enough to bridge and run a few hundred transactions. Below this, a run may
-# die partway through, which wastes the wall-clock time it had already spent.
-COMFORTABLE_ETH = Decimal("0.02")
+# Enough to bridge and run a few hundred transactions, with headroom.
+#
+# Measured 2026-08-07 against live gas: Sepolia at 1.08 gwei made a bridge
+# deposit about 0.0002 ETH, and zkSync Sepolia at 0.025 gwei made a transfer
+# about 0.0000005 ETH - so the full ~550-transaction matrix costs on the order
+# of 0.001 ETH. This threshold keeps roughly 5x headroom over that, which also
+# covers gas spiking by an order of magnitude mid-study.
+COMFORTABLE_ETH = Decimal("0.005")
 
 
 class Status:
