@@ -1,0 +1,7 @@
+# Test account for L2 finality benchmarking (task A2).
+# Testnet only - this account must never hold real funds.
+# The private key is in .env as BENCH_PRIVATE_KEY, which is gitignored.
+account:
+  address: "0xAEb018EdC9cA4D70D9488FF2d38F74dd81Ad3122"
+  created: 2026-08-07
+  networks: []  # filled in as faucets pay out (task A3)

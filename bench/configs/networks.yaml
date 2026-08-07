@@ -1,0 +1,109 @@
+# Networks under test (tasks A3, A4).
+#
+# One L1 and four L2s. The L1 is where funds arrive from faucets and where
+# every rollup posts its batches, so it is also where finality timestamps
+# t2 and t3 will eventually be read from (task C2).
+#
+# chain_id is the value we EXPECT. bench/check_funds.py asks each endpoint
+# what it actually is and reports a mismatch, so a wrong entry here surfaces
+# immediately rather than as an inexplicable failure later.
+#
+# Public endpoints rate-limit. Once log queries begin (phase C), replace the
+# rpc value with an Alchemy or Infura URL loaded from .env.
+
+networks:
+
+  sepolia:
+    display_name: Ethereum Sepolia
+    role: l1
+    chain_id: 11155111
+    rpc: https://ethereum-sepolia-rpc.publicnode.com
+    explorer: https://sepolia.etherscan.io
+    notes: Settlement layer. Fund this first, then bridge outward.
+
+  zksync_sepolia:
+    display_name: zkSync Era Sepolia
+    role: l2
+    family: zk
+    chain_id: 300
+    rpc: https://sepolia.era.zksync.dev
+    explorer: https://sepolia.explorer.zksync.io
+    settles_on: sepolia
+    bridge: https://portal.zksync.io/bridge/?network=sepolia
+    notes: >
+      Primary ZK target. Exposes zks_getTransactionDetails, which returns the
+      L1 commit and prove transaction hashes directly - the shortcut for C2.
+
+  polygon_zkevm_cardona:
+    display_name: Polygon zkEVM Cardona
+    role: l2
+    family: zk
+    chain_id: 2442
+    rpc: https://rpc.cardona.zkevm-rpc.com
+    explorer: https://cardona-zkevm.polygonscan.com
+    settles_on: sepolia
+    bridge: https://portal.polygon.technology/bridge
+    notes: Second ZK target. Reach for it only if zkSync is working end to end.
+
+  op_sepolia:
+    display_name: OP Sepolia
+    role: l2
+    family: optimistic
+    chain_id: 11155420
+    rpc: https://sepolia.optimism.io
+    explorer: https://sepolia-optimism.etherscan.io
+    settles_on: sepolia
+    bridge: https://app.optimism.io/bridge
+    notes: >
+      Optimistic target for phase E. Trustless finality is a challenge window
+      closing, not a proof verifying - and the testnet window is far shorter
+      than mainnet's seven days. Record both.
+
+  arbitrum_sepolia:
+    display_name: Arbitrum Sepolia
+    role: l2
+    family: optimistic
+    chain_id: 421614
+    rpc: https://sepolia-rollup.arbitrum.io/rpc
+    explorer: https://sepolia.arbiscan.io
+    settles_on: sepolia
+    bridge: https://bridge.arbitrum.io
+    notes: Alternative optimistic target if OP Sepolia proves awkward.
+
+
+# Which networks this study actually needs funded, in priority order.
+# Everything else is optional and should be left alone until the core works.
+funding_priority:
+  - sepolia          # required - the source for every bridge
+  - zksync_sepolia   # required - primary measurement target
+  - op_sepolia       # phase E only - the architectural contrast
+
+
+# Where testnet ETH comes from. Tiers reflect how hard each is to obtain;
+# work down the list and request from several at once rather than in sequence.
+faucets:
+
+  no_gatekeeping:
+    - name: PoW faucet (pk910)
+      url: https://sepolia-faucet.pk910.de
+      pays: sepolia
+      requires: nothing - the browser mines for a few minutes
+
+  free_account:
+    - name: Google Cloud Web3 faucet
+      url: https://cloud.google.com/application/web3/faucet/ethereum/sepolia
+      pays: sepolia
+      requires: a Google account; claimable daily
+
+  needs_mainnet_balance:
+    - name: Alchemy Sepolia faucet
+      url: https://sepoliafaucet.com
+      pays: sepolia
+      requires: roughly 0.001 ETH on Ethereum mainnet
+    - name: Chainlink faucet
+      url: https://faucets.chain.link/sepolia
+      pays: sepolia
+      requires: a funded mainnet account
+
+# Faucet rules change often. If one refuses, move to the next rather than
+# retrying - and record which one actually paid, in accounts.yaml.

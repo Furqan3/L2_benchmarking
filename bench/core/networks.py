@@ -1,0 +1,108 @@
+"""Network definitions and connections (tasks A3, A4).
+
+Every endpoint, chain id and explorer URL lives in bench/configs/networks.yaml,
+never inline in code, so that a run is described entirely by committed config.
+
+An RPC override may be supplied through the environment, which is how a public
+endpoint gets swapped for an Alchemy or Infura URL once rate limits start to
+bite in phase C:
+
+    BENCH_RPC_SEPOLIA=https://eth-sepolia.g.alchemy.com/v2/...
+"""
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+import yaml
+from web3 import Web3
+
+from bench.core.wallet import load_env
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+NETWORKS_CONFIG = REPO_ROOT / "bench" / "configs" / "networks.yaml"
+
+RPC_OVERRIDE_PREFIX = "BENCH_RPC_"
+
+
+@dataclass(frozen=True)
+class Network:
+    """One chain we submit to or read from."""
+
+    key: str
+    display_name: str
+    role: str                      # "l1" or "l2"
+    chain_id: int                  # what we expect; verified at connect time
+    rpc: str
+    explorer: str
+    family: str | None = None      # "zk" or "optimistic", for L2s
+    settles_on: str | None = None  # key of the L1 this rollup posts to
+    bridge: str | None = None
+    notes: str | None = None
+
+    @property
+    def is_l2(self) -> bool:
+        return self.role == "l2"
+
+    def address_url(self, address: str) -> str:
+        return f"{self.explorer.rstrip('/')}/address/{address}"
+
+
+def _config() -> dict:
+    return yaml.safe_load(NETWORKS_CONFIG.read_text()) or {}
+
+
+def load_networks() -> dict[str, Network]:
+    """Every network in the config, keyed by its short name."""
+    load_env()
+    out: dict[str, Network] = {}
+    for key, spec in (_config().get("networks") or {}).items():
+        rpc = os.environ.get(f"{RPC_OVERRIDE_PREFIX}{key.upper()}", spec["rpc"])
+        out[key] = Network(
+            key=key,
+            display_name=spec["display_name"],
+            role=spec["role"],
+            chain_id=int(spec["chain_id"]),
+            rpc=rpc,
+            explorer=spec["explorer"],
+            family=spec.get("family"),
+            settles_on=spec.get("settles_on"),
+            bridge=spec.get("bridge"),
+            notes=spec.get("notes"),
+        )
+    return out
+
+
+def funding_priority() -> list[str]:
+    """Networks this study actually needs funded, most important first."""
+    return list(_config().get("funding_priority") or [])
+
+
+def faucets() -> dict[str, list[dict]]:
+    """Faucet options, grouped by how hard they are to obtain from."""
+    return _config().get("faucets") or {}
+
+
+def connect(network: Network, timeout: float = 10.0) -> Web3:
+    """An HTTP connection to one network. Does not verify the chain id."""
+    return Web3(Web3.HTTPProvider(network.rpc, request_kwargs={"timeout": timeout}))
+
+
+class ChainIdMismatch(RuntimeError):
+    """The endpoint is not the chain the config claims it is.
+
+    Worth failing loudly on: an endpoint quietly pointing at the wrong chain
+    produces results that look plausible and describe the wrong system.
+    """
+
+
+def connect_verified(network: Network, timeout: float = 10.0) -> Web3:
+    """Connect and confirm the endpoint reports the chain id we expect."""
+    w3 = connect(network, timeout=timeout)
+    actual = w3.eth.chain_id
+    if actual != network.chain_id:
+        raise ChainIdMismatch(
+            f"{network.key}: config says chain {network.chain_id}, "
+            f"endpoint {network.rpc} reports {actual}"
+        )
+    return w3
