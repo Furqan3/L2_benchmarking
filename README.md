@@ -21,21 +21,22 @@ Prof. Sara Rouhani, TCDT Lab.
 
 ## Results so far
 
-165 transactions, 100% success, across two rollup architectures.
+**709 transactions, 96.2% success**, across two rollup architectures, plus
+read-only observation of both chains' mainnets.
 
 
 | Level | zkSync Era Sepolia | kind | OP Sepolia | kind | ratio |
 |---|---|---|---|---|---|
-| Full trust (`t1`) | 18.07 s | observed | 14.97 s | observed | comparable |
-| Partial trust (`t2`) | 25.49 min | observed | 1.99 min | *estimated* | OP **12.8x faster** |
+| Full trust (`t1`) | 18.90 s | observed | 18.89 s | observed | **indistinguishable** |
+| Partial trust (`t2`) | 25.49 min | observed | 1.90 min | *estimated* | OP **13.4x faster** |
 | Trustless (`t3`) | 36.69 min | observed | **7.01 days** | *derived* | OP **275x slower** |
 
-Same workload (native transfer), same batch size (50), both rollups.
+Native transfer, medians over 265 and 212 successful transactions respectively.
 
-At full trust the two architectures are **near-identical** — the sequencer
-accepts in seconds either way. OP then pulls sharply ahead at partial trust,
-because it posts batches to L1 far more often. And then it loses by more than
-two orders of magnitude at trustless finality.
+At full trust the two architectures are **indistinguishable** — 18.90 s against
+18.89 s. OP then pulls sharply ahead at partial trust, because it posts batches
+to L1 every few minutes rather than every half hour. And then it loses by more
+than two orders of magnitude at trustless finality.
 
 **That crossover is the result this project exists to produce**, and it is
 precisely what a single-number latency benchmark cannot show: whichever rollup
@@ -48,10 +49,56 @@ is a deadline computed from the output proposal plus the challenge period read
 from the OptimismPortal. The two must never be tabulated as though they were the
 same kind of measurement.
 
-> **Caveat.** The zkSync figures come from 109 transactions but a **single
-> batch**, submitted inside one eleven-minute window. Settlement therefore has
-> n = 1 and the percentiles do not yet mean what percentiles normally mean.
-> Task F2 — five repetitions at least an hour apart — is what fixes this.
+### Failures are reported, not hidden
+
+27 of 709 transactions failed, and they are in the data with reasons:
+
+| Count | Outcome | Reason |
+|---|---|---|
+| 24 | `timeout` | no receipt within 120 s |
+| 3 | `rejected` | HTTP 429 from the public OP Sepolia endpoint |
+
+Latency statistics count successes only, and the success rate is reported beside
+them. The 429s are why read methods now retry with backoff — and why
+`eth_sendRawTransaction` deliberately does **not**: retrying a broadcast risks
+submitting the same signed transaction twice.
+
+### Grounded against production (F4)
+
+Read-only observation of both mainnets, sending nothing:
+
+| | zkSync Era Mainnet | OP Mainnet |
+|---|---|---|
+| batch seal / posting interval | 30.15 min | 4.40 min |
+| L1 commit interval | 31.88 min | — |
+| commit → proof | **38.38 min** | — |
+| output proposal interval | — | 60.20 min |
+| proof maturity delay | — | **7.00 days** |
+
+Two things follow. **Mainnet proves ~3.4x slower than the testnet** — 38.38 min
+against 11.2 — so the testnet trustless figure understates production by a
+stateable factor. And **OP Mainnet's challenge window is 7.00 days, identical to
+OP Sepolia's**, which confirms against production that the testnet does not
+shorten it. Testnets are widely assumed to; this one does not.
+
+### Figures
+
+`python -m bench.analysis.figures` writes PNG, PDF and a CSV table for each:
+
+| Figure | Shows |
+|---|---|
+| `g1_latency_cdf` | Distributions per finality level, one panel per rollup, shared log axis |
+| `g2_inversion` | **The headline** — the crossover, solid for observed and dashed for derived |
+| `g3_cost_breakdown` | Where a batch's L1 cost goes, per transaction |
+
+Cost split on zkSync batch 21623: **batch posting 74.00%, proof verification
+24.83%, blob data availability 1.17%**. Blob DA being near-free is a property of
+Sepolia's blob market sitting at its floor, not a mainnet result.
+
+> **Caveat.** Settlement is still thin: zkSync's 109 earliest transactions all
+> landed in a **single batch**, so those percentiles do not yet mean what
+> percentiles normally mean. Task F2 — five repetitions at least an hour apart —
+> is what fixes this, and it now runs hourly from cron.
 
 ## Setup
 
@@ -157,6 +204,47 @@ they settled, writes the files back. Safe to run repeatedly and safe to
 interrupt — it recomputes what is outstanding from disk every pass and holds
 nothing between passes.
 
+### The experiment matrix and unattended collection
+
+```sh
+python -m bench.run_matrix --plan                      # the checklist, and what is done
+python -m bench.run_matrix --next                      # run the next due cell, then stop
+python -m bench.run_matrix --paired -w native_transfer -c 50   # both rollups, back to back
+bench/collect.sh                                       # one tick: submit + resolve
+```
+
+`--next` runs exactly **one** cell per invocation and refuses a repetition
+sooner than 60 minutes after the last one for that cell. That refusal is the
+point: five runs back to back measure one moment five times, which is what
+repeating is meant to avoid.
+
+`collect.sh` is the unattended tick, installed hourly via cron:
+
+```
+17 * * * * /home/unk/projects/l2_benchmarking/bench/collect.sh
+```
+
+Nothing loops. A missed tick means the next one picks up the most overdue cell;
+a machine asleep for six hours leaves the matrix six ticks behind, not corrupted.
+
+### Mainnet observation
+
+```sh
+python -m bench.observe_mainnet                  # both mainnet rollups
+python -m bench.observe_mainnet -n zksync_mainnet --samples 40
+```
+
+Read-only. Mainnet networks carry `readonly: true` in `networks.yaml` and every
+submitting entry point refuses them — this repository holds a funded key and
+names chain 1, 10 and 324 beside the testnets, so one mistyped `-n` would
+otherwise sign a transaction with real money.
+
+### Figures
+
+```sh
+python -m bench.analysis.figures    # G1, G2, G3 as PNG + PDF, each with a CSV
+```
+
 ### Export and checks
 
 ```sh
@@ -197,8 +285,10 @@ bench/
   configs/    one YAML per concern; a run is described entirely by these
   abis/       committed contract ABIs
   contracts/  the workload token and its vendored OpenZeppelin sources
+  analysis/   figure generation; figures/ is gitignored output
   results/    gitignored JSONL output
   export/     gitignored CSV deliverables
+  collect.sh  one unattended tick, run hourly from cron
 docs/         project handbook and its build script
 ```
 
@@ -220,22 +310,31 @@ on a third party staying online.
 | B | Make it real | **Done** — B1–B5 |
 | C | The contribution | **Done** — C1–C6 |
 | D | Make it defensible | **Done** — D1–D5 |
-| E | The comparison | E1, E2 done; E3 in progress |
-| F | Data collection | F1–F4 remaining |
-| G | Analysis | G1–G5 remaining |
+| E | The comparison | **Done** — E1–E3 |
+| F | Data collection | F1, F4 done; **F2 running hourly**, F3 partial |
+| G | Analysis | G1–G3 done; G4, G5 remaining |
 | H | Write and deliver | H1–H5 remaining |
 
-### Immediate next steps
+**29 of 38 tasks complete.**
 
-1. **E3** — resolve OP settlement across all rows, then run both rollups close
-   together in time with the L1 gas price recorded at each.
-2. **F2 and F3** — repetitions and the batch-size sweep. Start them early; they
-   cost waiting rather than work, and F2 is what turns settlement from n = 1
-   into a distribution.
-3. **F4** — read-only mainnet observation. Costs nothing and grounds every
-   testnet figure.
-4. **H1** — the framework comparison table. No code, no data, no funds, so it is
-   the task to work on whenever something else is blocked.
+### What remains, and why
+
+| Task | Blocked by |
+|---|---|
+| **F2** repetitions | Wall clock. 48 outstanding, one per hour by design — running them faster would measure one moment repeatedly |
+| **F3** batch sweep | Half of it is **not reachable**; see below |
+| **G4** reproducibility | The calendar. Its done-when is "re-run on a different day" |
+| **G5** threats to validity | Nothing. Not yet written |
+| **H1–H5** | You. H1 needs papers you have opened; H2/H4/H5 are yours to author |
+
+**F3's cost half cannot be measured observationally.** Seven runs of sizes 1
+through 50 all landed in zkSync batch 21623 alongside 875 other transactions,
+giving an identical per-transaction cost every time. Per-transaction cost is
+batch cost divided by the batch's own transaction count, and **we do not control
+that count** — the rollup batches everyone's traffic on its own schedule. The
+latency half is real and already visible. The honest version of the cost
+question is per-transaction cost against the *rollup's* batch size across many
+batches, which is what `observe_mainnet` reads.
 
 ### Needs a human
 
@@ -267,5 +366,9 @@ on a third party staying online.
 - **L1 cost on OP Stack.** The number of transactions sharing a batch is not
   exposed without decoding the blob, so there is no denominator. Reported
   unavailable rather than divided by a guess.
+- **The effect of our own batch size on cost.** Our submission size does not
+  change the rollup's batch composition. Seven runs of sizes 1 to 50 all landed
+  in one batch of 875 and cost exactly the same per transaction. What we vary is
+  our load, not the rollup's.
 - **Mainnet finality directly.** Read-only mainnet observation (F4) grounds the
   testnet figures against production behaviour.

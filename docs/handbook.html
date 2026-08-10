@@ -138,7 +138,7 @@ together, and what every file in the repository is for.</p>
   <tr><td>Supervisor</td><td>Prof. Sara Rouhani, TCDT Lab</td></tr>
   <tr><td>Intern</td><td>Ujala Kiran</td></tr>
   <tr><td>Approach</td><td>Observational — measure public networks, host nothing</td></tr>
-  <tr><td>Status</td><td>26 of 38 tasks complete. Phases A–D done, E1 and E2 done; both architectures measured</td></tr>
+  <tr><td>Status</td><td>29 of 38 tasks complete. Phases A–E done; analysis figures built; collection now runs unattended</td></tr>
   <tr><td>Date</td><td>10 August 2026</td></tr>
 </table>
 
@@ -200,16 +200,22 @@ differently once you stop trusting the sequencer.</p>
   <tr><td>B</td><td>Make it real</td><td>B1–B5</td><td class="done">Complete</td></tr>
   <tr><td>C</td><td>The contribution</td><td>C1–C6</td><td class="done">Complete</td></tr>
   <tr><td>D</td><td>Make it defensible</td><td>D1–D5</td><td class="done">Complete — minimum viable deliverable</td></tr>
-  <tr><td>E</td><td>The comparison</td><td>E1–E3</td><td class="pending">E1, E2 done; E3 in progress</td></tr>
-  <tr><td>F</td><td>Data collection</td><td>F1–F4</td><td class="not">Not started</td></tr>
-  <tr><td>G</td><td>Analysis</td><td>G1–G5</td><td class="not">Not started</td></tr>
+  <tr><td>E</td><td>The comparison</td><td>E1–E3</td><td class="done">Complete</td></tr>
+  <tr><td>F</td><td>Data collection</td><td>F1–F4</td><td class="pending">F1 and F4 done; F2 running hourly from cron; F3 partly unreachable</td></tr>
+  <tr><td>G</td><td>Analysis</td><td>G1–G5</td><td class="pending">G1–G3 done; G4 needs another day, G5 unwritten</td></tr>
   <tr><td>H</td><td>Write and deliver</td><td>H1–H5</td><td class="not">Not started</td></tr>
 </table>
 
 <h3>Results obtained so far</h3>
 
-<p>165 transactions across two architectures, every one successful, every one
-settled: 109 on zkSync Era Sepolia, all in batch 21623, and 56 on OP Sepolia.</p>
+<p>709 transactions across two architectures, 682 of them successful, plus
+read-only observation of both chains' mainnets. 381 on zkSync Era Sepolia and
+328 on OP Sepolia.</p>
+
+<p>27 failed, and they are in the data with reasons rather than discarded: 24
+timed out with no receipt inside 120 seconds, and 3 were rejected outright by a
+public endpoint returning HTTP 429. Latency statistics count successes only and
+the success rate — 96.2% — is reported beside them.</p>
 
 <table class="grid">
   <tr><th style="width:130px">Level</th><th class="num" style="width:70px">Median</th><th class="num" style="width:70px">p95</th><th class="num" style="width:70px">Min</th><th class="num" style="width:70px">Max</th></tr>
@@ -229,15 +235,19 @@ ETH) divided by the 875 transactions sharing the batch.</p>
 
 <div class="callout">
   <div class="label">The caveat that governs every number above</div>
-  <p>109 transactions, but <strong>one batch</strong>. One commit transaction,
-  one proof transaction, submitted inside a single eleven-minute window. The
-  tell is that the t₂ and t₃ spreads are identical — 10.95 minutes each —
-  because t₂ and t₃ are the same two constants for all 109 rows and the entire
-  spread comes from our own submission times differing.</p>
-  <p>Settlement itself therefore has <strong>n = 1</strong>. These medians
-  demonstrate that the pipeline works end to end; they are not yet a
-  characterisation of the network. Task F2 — five repetitions, at least an hour
-  apart — is what turns them into one.</p>
+  <p>Of the 709 transactions collected, only 109 have settled on the ZK side so
+  far, and all of them landed in <strong>one batch</strong> — a single commit
+  transaction and a single proof transaction, from submissions inside one
+  eleven-minute window. The tell is that the t₂ and t₃ spreads are identical,
+  10.95 minutes each, because both are the same two constants for all 109 rows
+  and the entire spread comes from our own submission times differing.</p>
+  <p>Settlement itself therefore still has <strong>n = 1</strong> on that side.
+  These medians demonstrate that the pipeline works end to end; they are not yet
+  a characterisation of the network, and no percentile on t₂ or t₃ means what a
+  percentile normally means. Repetitions now run hourly from cron, and it is
+  those — five per cell, at least an hour apart — that turn one observation into
+  a distribution. Until they accumulate, every settlement figure in this document
+  should be read as a single observation.</p>
 </div>
 
 <h3>The cross-architecture comparison</h3>
@@ -247,16 +257,17 @@ exists to produce.</p>
 
 <table class="grid">
   <tr><th style="width:118px">Level</th><th class="num" style="width:88px">zkSync Era</th><th style="width:66px">kind</th><th class="num" style="width:88px">OP Sepolia</th><th style="width:66px">kind</th><th>ratio</th></tr>
-  <tr><td>Full trust (t₁)</td><td class="num">18.07 s</td><td>observed</td><td class="num">14.97 s</td><td>observed</td><td>comparable</td></tr>
-  <tr><td>Partial trust (t₂)</td><td class="num">25.49 min</td><td>observed</td><td class="num">1.99 min</td><td>estimated</td><td>OP <strong>12.8x faster</strong></td></tr>
+  <tr><td>Full trust (t₁)</td><td class="num">18.90 s</td><td>observed</td><td class="num">18.89 s</td><td>observed</td><td><strong>indistinguishable</strong></td></tr>
+  <tr><td>Partial trust (t₂)</td><td class="num">25.49 min</td><td>observed</td><td class="num">1.90 min</td><td>estimated</td><td>OP <strong>13.4x faster</strong></td></tr>
   <tr><td>Trustless (t₃)</td><td class="num">36.69 min</td><td>observed</td><td class="num"><strong>7.01 days</strong></td><td>derived</td><td>OP <strong>275x slower</strong></td></tr>
 </table>
 
-<p>Native transfer, batch of fifty, both rollups. Like for like: an earlier
-version of this table compared OP's single-transaction run against zkSync's
-batch of fifty and made the optimistic rollup look thirty times faster at full
-trust. It is not. At matched batch size the two are within a few seconds of each
-other, and the comparison only becomes interesting further down the table.</p>
+<p>Native transfer, medians over 265 and 212 successful transactions. Like for
+like: an earlier version of this table compared OP's single-transaction run
+against zkSync's batch of fifty and made the optimistic rollup look thirty times
+faster at full trust. It is not — with more data the two are now
+indistinguishable at full trust, 18.90 s against 18.89 s, and the comparison
+only becomes interesting further down the table.</p>
 
 <div class="callout">
   <div class="label">The inversion, and why the kind column is not decoration</div>
@@ -280,6 +291,47 @@ other, and the comparison only becomes interesting further down the table.</p>
   because the batch's transaction count is not exposed and there is therefore no
   denominator to divide by.</p>
 </div>
+
+<h3>Grounded against production</h3>
+
+<p>Both mainnets observed read-only, sending nothing and spending nothing.</p>
+
+<table class="grid">
+  <tr><th style="width:200px">Measure</th><th class="num" style="width:130px">zkSync Era Mainnet</th><th class="num">OP Mainnet</th></tr>
+  <tr><td>batch seal / posting interval</td><td class="num">30.15 min</td><td class="num">4.40 min</td></tr>
+  <tr><td>L1 commit interval</td><td class="num">31.88 min</td><td class="num">—</td></tr>
+  <tr><td>commit → proof</td><td class="num"><strong>38.38 min</strong></td><td class="num">—</td></tr>
+  <tr><td>output proposal interval</td><td class="num">—</td><td class="num">60.20 min</td></tr>
+  <tr><td>proof maturity delay</td><td class="num">—</td><td class="num"><strong>7.00 days</strong></td></tr>
+</table>
+
+<p>Two things follow, and both belong in the report. <strong>Mainnet proves
+about 3.4 times slower than the testnet</strong> — 38.38 minutes against 11.2 —
+so every testnet trustless figure understates production by a factor that can
+now be stated rather than gestured at. And <strong>OP Mainnet's proof maturity
+delay is 7.00 days, identical to OP Sepolia's</strong>, which confirms against
+production what the testnet reading suggested: this testnet does not shorten its
+challenge window, though testnets are widely assumed to.</p>
+
+<h3>The figures</h3>
+
+<table class="grid">
+  <tr><th style="width:150px">Figure</th><th>What it shows</th></tr>
+  <tr><td><code>g1_latency_cdf</code></td><td>Distributions per finality level, one panel per rollup, shared log axis so the panels are genuinely comparable</td></tr>
+  <tr><td><code>g2_inversion</code></td><td>The headline. The crossover, drawn solid for observed and dashed for derived</td></tr>
+  <tr><td><code>g3_cost_breakdown</code></td><td>Where a batch's L1 cost goes, per transaction</td></tr>
+</table>
+
+<p>Each ships a CSV of the numbers behind it. That is not politeness: three of
+the palette's slots sit below 3:1 contrast on a white surface, so every figure
+carries either direct labels or a table view, and a reader should never need to
+trust a printer or their own colour vision to check a claim.</p>
+
+<p>The cost split on zkSync batch 21623, per transaction: batch posting 74.00%,
+proof verification 24.83%, blob data availability <strong>1.17%</strong>. Blob
+DA being nearly free is a property of Sepolia's blob market resting at its price
+floor, not a result about the rollup, and must not be quoted as a mainnet
+figure.</p>
 
 <h2 class="break">3 · How the system flows</h2>
 
@@ -449,6 +501,48 @@ achievable rather than aspirational.</p>
   and every declared limitation. <code>--eth-usd</code> overrides the configured
   rate, which is D2's acceptance test.</p>
   <div class="api">latencies · write_raw · batch_costs · summarise_group · main</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/run_matrix.py</span><span class="tag">F1 · F2 · E3</span></div>
+  <p class="why">Drives the experiment matrix. <code>--plan</code> prints the
+  checklist and reads completion from the run files themselves rather than a
+  ledger, so the record cannot drift from the data. <code>--next</code> runs
+  exactly one cell and refuses a repetition sooner than the configured gap —
+  that refusal is the feature, because five runs back to back measure one moment
+  five times. <code>--paired</code> submits to both architectures back to back
+  for the cross-architecture comparison.</p>
+  <div class="api">cells · completed · plan · run_next · run_paired</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/collect.sh</span><span class="tag">F2 · C6</span></div>
+  <p class="why">One unattended tick, installed hourly from cron: submit at most
+  one overdue cell, run one resolve pass, exit. Nothing loops. A missed tick
+  means the next one picks up the most overdue cell, and a machine asleep for
+  six hours leaves the matrix six ticks behind rather than corrupted.</p>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/observe_mainnet.py</span><span class="tag">F4</span></div>
+  <p class="why">Reads production batch cadence, proof intervals and challenge
+  parameters without sending anything. For a ZK rollup the batch view gives
+  commit cadence and commit-to-proof directly; for an OP Stack chain the two
+  cadences come from different places — batch postings by scanning the L1 for
+  the batcher, output proposals from the dispute game factory. Every figure is
+  reported with the range it was measured over.</p>
+  <div class="api">observe_zk · observe_op · block_at_or_after</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/analysis/figures.py</span><span class="tag">G1 · G2 · G3</span></div>
+  <p class="why">The report's figures, each with a CSV beside it. Observed and
+  derived values are drawn differently — solid against dashed, said in the
+  legend — because a proof verified in an Ethereum block and a deadline that
+  nothing marks are not the same kind of measurement. G3's caption is computed
+  from the data rather than typed, so it cannot come to contradict the chart it
+  sits above.</p>
+  <div class="api">figure_cdf · figure_inversion · figure_cost</div>
 </div>
 
 <div class="file">
@@ -709,6 +803,28 @@ than t₀ and says so. The invariant matters more than the fix: a future matchin
 heuristic making the same class of mistake now fails loudly instead of producing
 a negative latency somebody has to notice by eye.</p>
 
+<h4>Our batch size is not the rollup's batch size</h4>
+<p>The batch-size sweep asks that per-transaction cost fall as batch size grows.
+It does not, and cannot be made to on a shared public rollup. Seven runs of
+sizes one through fifty all landed in zkSync batch 21623 alongside 875 other
+transactions and produced an identical per-transaction cost every time.
+Per-transaction cost is the batch's cost divided by the batch's own transaction
+count, and <strong>that count is not something we control</strong> — the rollup
+batches everybody's traffic on its own schedule and ours is a minority of it.
+The latency half of the sweep is real, because queueing is an effect we do
+cause. The honest form of the cost question is per-transaction cost against the
+<em>rollup's</em> batch size across many batches, which mainnet observation
+already reads. Same structural reason the data-availability measurement failed.</p>
+
+<h4>A collection loop that looked like it was working</h4>
+<p>The first repetition of every matrix cell ran, and then nothing was going to
+run repetitions two through five. The matrix would have rested at 11 of 60
+indefinitely while the plan output kept reporting "next due in 50 min" — the
+appearance of progress with no mechanism behind it. Unattended collection is now
+an hourly cron tick that submits at most one overdue cell. Worth recording
+because the failure mode was invisible from the inside: every individual
+component was working correctly.</p>
+
 <h4>Full-trust latency depends on what you mean by it</h4>
 <p>Measured t₁ exceeds the L2 block's own timestamp by a median of 17.95 s for
 batched submissions. The sequencer timestamps the block near submission but does
@@ -737,24 +853,19 @@ upper bound. Both are recorded so the gap is visible.</p>
 
 <h2>8 · What comes next</h2>
 
+<p>Phases A through E are complete and the analysis figures are built. What is
+left divides cleanly into work that is blocked by time, work that is blocked by
+nothing, and work that belongs to the author.</p>
+
+<h3>What remains, and what is blocking each</h3>
+
 <table class="grid">
-  <tr><th style="width:60px">Tasks</th><th style="width:170px">Work</th><th>Why it matters now</th></tr>
-  <tr><td>E3</td><td>Finish the cross-architecture table</td>
-      <td>E1 and E2 are done and the inversion is visible. E3 needs OP's
-      settlement resolved across all 56 rows and both rollups run close
-      together in time with the L1 gas price recorded at each.</td></tr>
-  <tr><td>F2 · F3</td><td>Repetitions and batch-size sweep</td>
-      <td>Turns settlement from n = 1 into a distribution. Should start
-      immediately and run in the background — it costs waiting, not work.</td></tr>
-  <tr><td>F4</td><td>Read-only mainnet observation</td>
-      <td>Testnet proof cadence is not mainnet's. Costs nothing and grounds every
-      testnet figure.</td></tr>
-  <tr><td>G1–G5</td><td>Analysis and threats to validity</td>
-      <td>Several limitations are already documented here and belong in that
-      section verbatim.</td></tr>
-  <tr><td>H1</td><td>Framework comparison table</td>
-      <td>No code, no data, no funds. Four of its six source papers are already
-      in the project directory.</td></tr>
+  <tr><th style="width:150px">Task</th><th>Blocked by</th></tr>
+  <tr><td>F2 repetitions</td><td>Wall clock, deliberately. 48 outstanding at one per hour; running them faster would measure a single moment repeatedly, which is the thing repeating exists to avoid</td></tr>
+  <tr><td>F3 batch sweep</td><td>Half of it is not reachable at all — see above. The latency half is done</td></tr>
+  <tr><td>G4 reproducibility</td><td>The calendar. Its test is "re-run on a different day"</td></tr>
+  <tr><td>G5 threats to validity</td><td>Nothing. It is simply unwritten, and most of its content is already scattered through section 6 of this document</td></tr>
+  <tr><td>H1–H5</td><td>The author. H1 needs papers actually opened; the report, presentation and handover are the intern's to write</td></tr>
 </table>
 
 <h3>A limit worth planning around</h3>
