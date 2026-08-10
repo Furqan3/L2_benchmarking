@@ -46,7 +46,12 @@ from the end of the previous one silently inflates every trustless figure.
     detail        why, when the outcome is not success
     gas_limit     what we asked for
     gas_used      what the receipt reported - the only figure D2 may cost from
-    gas_price_wei effective price at submission
+    gas_price_wei effective price at submission, on the L2
+    l1_gas_price_wei  Ethereum gas price at submission time. E3 step 2: a
+                  comparison run across very different L1 gas conditions is not
+                  a comparison, and settlement cost is paid in L1 gas, so the
+                  condition has to travel with the row rather than be looked up
+                  afterwards from a time that can only be guessed.
     block         L2 block number
 """
 
@@ -112,6 +117,7 @@ def new_record(**fields: Any) -> dict:
         "gas_limit": None,
         "gas_used": None,
         "gas_price_wei": None,
+        "l1_gas_price_wei": None,
         "block": None,
     }
     if fields:

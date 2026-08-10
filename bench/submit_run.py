@@ -69,6 +69,12 @@ def main() -> int:
         return 2
 
     net: Network = networks[args.network]
+    if net.readonly:
+        print(f"\n{net.display_name} is marked readonly in networks.yaml.")
+        print("This is an observation-only network. Refusing to sign anything "
+              "against it.\n")
+        return 2
+
     workload = workloads[args.workload]
     account = load_account()
     run_id = args.run_id or default_run_id(net.key, workload.name, args.count)
@@ -96,6 +102,16 @@ def main() -> int:
         print("Deploy it: python -m bench.deploy_token "
               f"-n {net.key} --record\n")
         return 1
+
+    # Read once, before the batch goes out. Cheap, and it is the only moment
+    # at which the L1 condition for this run can be recorded truthfully.
+    l1_gas_price = None
+    if net.settles_on and net.settles_on in networks:
+        try:
+            l1_gas_price = connect_verified(networks[net.settles_on]).eth.gas_price
+            print(f"L1 gas     {l1_gas_price / 1e9:.3f} gwei on {net.settles_on}")
+        except Exception as exc:  # noqa: BLE001
+            print(f"L1 gas     unavailable ({type(exc).__name__})")
 
     base = assign_nonces(w3, account, batch)
     print(f"nonces     {base}..{base + args.count - 1}")
@@ -130,6 +146,9 @@ def main() -> int:
             records.append(
                 rejected_record(exc, tx, workload.name, net.key, run_id)
             )
+
+    for record in records:
+        record["l1_gas_price_wei"] = l1_gas_price
 
     path = run_path(run_id)
     append(path, records)

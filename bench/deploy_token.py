@@ -99,6 +99,12 @@ def main() -> int:
         print(f"unknown network '{args.network}'. known: {', '.join(networks)}")
         return 2
     net: Network = networks[args.network]
+    if net.readonly:
+        print(f"\n{net.display_name} is marked readonly in networks.yaml.")
+        print("This is an observation-only network. Refusing to sign anything "
+              "against it.\n")
+        return 2
+
     account = load_account()
 
     abi, bytecode = compile_token()

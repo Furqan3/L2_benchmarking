@@ -54,6 +54,10 @@ class Network:
     l1_batcher: str | None = None
     l1_dispute_game_factory: str | None = None
     l1_portal: str | None = None
+    #: Observation only. Every submitting entry point refuses these. The repo
+    #: holds a funded key and now names mainnet chains beside the testnets, so
+    #: one mistyped -n would otherwise sign a transaction with real money.
+    readonly: bool = False
 
     @property
     def is_l2(self) -> bool:
@@ -113,6 +117,7 @@ def load_networks() -> dict[str, Network]:
             l1_batcher=spec.get("l1_batcher"),
             l1_dispute_game_factory=spec.get("l1_dispute_game_factory"),
             l1_portal=spec.get("l1_portal"),
+            readonly=bool(spec.get("readonly", False)),
         )
     return out
 

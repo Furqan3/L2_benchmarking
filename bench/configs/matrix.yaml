@@ -1,0 +1,46 @@
+# The experiment matrix (task F1).
+#
+# Every combination written down BEFORE anything runs, so the set of runs is a
+# decision rather than an accumulation. Each cell gets an identifier that is
+# recorded on every row it produces, which is what makes a figure traceable back
+# to the run that made it.
+#
+#     KEPT DELIBERATELY SMALL
+#
+# 2 rollups x 2 workloads x 3 batch sizes x 5 repetitions = 60 runs. The
+# handbook calls that plenty, and it is: the constraint on this study is
+# wall-clock settlement time, not the number of cells.
+#
+#     REPETITIONS MUST BE SEPARATED IN TIME
+#
+# Five runs back to back measure one moment's network conditions five times.
+# The whole reason for repeating is to sample different conditions, so the
+# runner refuses to record a repetition sooner than min_gap_seconds after the
+# previous one for the same cell unless explicitly forced.
+
+rollups:
+  - zksync_sepolia
+  - op_sepolia
+
+workloads:
+  - native_transfer
+  - erc20_transfer
+
+batch_sizes: [1, 10, 100]
+
+repetitions: 5
+
+# An hour. The handbook's floor, and it is a floor rather than a target: longer
+# is better, because it samples more of the daily cycle in L1 gas price and
+# rollup batch cadence.
+min_gap_seconds: 3600
+
+# Paired runs (task E3 step 1).
+#
+# A cross-architecture comparison is only a comparison if the two runs saw
+# similar conditions. Submitting to both rollups as close together in time as
+# possible, and recording the L1 gas price with each, is what makes the two
+# columns of the E3 table comparable rather than merely adjacent.
+pairing:
+  enabled: true
+  max_skew_seconds: 300

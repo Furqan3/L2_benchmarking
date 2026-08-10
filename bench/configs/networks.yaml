@@ -101,6 +101,66 @@ networks:
     notes: Alternative optimistic target if OP Sepolia proves awkward.
 
 
+# ---------------------------------------------------------------------------
+# Mainnet, READ ONLY (task F4)
+#
+# Testnet numbers are real but not representative: proof cadence, batch
+# intervals and gas prices under production load are all different. Observing
+# mainnet costs nothing and grounds every testnet figure against what actually
+# happens - the handbook calls it the cheapest remaining source of a real
+# comparison if everything else runs short.
+#
+#     readonly: true IS A SAFETY INTERLOCK, NOT DOCUMENTATION
+#
+# This repository holds a funded private key and now names mainnet chains in the
+# same config as the testnets. One mistyped -n and a script would sign a real
+# transaction with real money. Every submitting entry point refuses a network
+# with this flag set, so the mistake is impossible rather than merely unlikely.
+# ---------------------------------------------------------------------------
+
+  mainnet:
+    display_name: Ethereum Mainnet
+    role: l1
+    readonly: true
+    chain_id: 1
+    rpc: https://ethereum-rpc.publicnode.com
+    explorer: https://etherscan.io
+    notes: Settlement layer for the mainnet rollups below. Observed, never used.
+
+  zksync_mainnet:
+    display_name: zkSync Era Mainnet
+    role: l2
+    readonly: true
+    family: zk
+    chain_id: 324
+    rpc: https://mainnet.era.zksync.io
+    explorer: https://explorer.zksync.io
+    settles_on: mainnet
+    l1_contract: "0x32400084c286cf3e17e7b677ea9583e60a000324"
+    l1_abi: zksync_hyperchain.json
+    notes: >
+      Obtained from the chain via zks_getMainContract, same as the testnet.
+      zks_getL1BatchDetails works here too, which makes production batch
+      cadence and commit-to-proof intervals directly readable.
+
+  op_mainnet:
+    display_name: OP Mainnet
+    role: l2
+    readonly: true
+    family: optimistic
+    chain_id: 10
+    rpc: https://mainnet.optimism.io
+    explorer: https://optimistic.etherscan.io
+    settles_on: mainnet
+    l1_batch_inbox: "0xFF00000000000000000000000000000000000010"
+    l1_batcher: "0x6887246668a3b87F54DeB3b94Ba47a6f63F32985"
+    l1_dispute_game_factory: "0xe5965Ab5962eDc7477C8520243A95517CD252fA9"
+    l1_portal: "0xbEb5Fc579115071764c7423A4f12eDde41f106Ed"
+    notes: >
+      Batcher read from the L1Block predeploy on the L2; the other addresses
+      come from the superchain registry. The challenge period here is the
+      figure the testnet was expected to shorten and does not.
+
 # Which networks this study actually needs funded, in priority order.
 # Everything else is optional and should be left alone until the core works.
 funding_priority:
@@ -137,3 +197,4 @@ faucets:
 
 # Faucet rules change often. If one refuses, move to the next rather than
 # retrying - and record which one actually paid, in accounts.yaml.
+
