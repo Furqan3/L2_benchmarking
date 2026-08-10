@@ -68,5 +68,5 @@ tokens:
   sepolia: null
   zksync_sepolia: "0xA1b9fdb1599fd89250B3463A1daA96c32C4BD958"
   polygon_zkevm_cardona: null
-  op_sepolia: null
+  op_sepolia: "0xA1b9fdb1599fd89250B3463A1daA96c32C4BD958"
   arbitrum_sepolia: null

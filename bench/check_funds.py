@@ -199,26 +199,54 @@ def record(results: list[dict]) -> None:
     used and how the account was funded. Recorded at the time, not remembered
     in week seven.
     """
-    cfg = yaml.safe_load(ACCOUNTS_CONFIG.read_text()) or {}
-    entries = []
+    text = ACCOUNTS_CONFIG.read_text()
+    cfg = yaml.safe_load(text) or {}
+    account = cfg.setdefault("account", {})
+
+    # Keyed by network so re-running updates a row rather than appending a
+    # duplicate, and so a 'faucet' field already filled in by hand survives.
+    # Losing that on every re-check would be losing the only provenance record
+    # the methodology section has.
+    existing = {e["key"]: e for e in (account.get("networks") or [])}
+
     for r in results:
         if r["balance_eth"] is None:
             continue
         n: Network = r["network"]
-        entries.append(
+        entry = existing.get(n.key, {"faucet": "TODO - which faucet or bridge paid this"})
+        entry.update(
             {
                 "key": n.key,
                 "display_name": n.display_name,
                 "chain_id": n.chain_id,
                 "balance_eth": float(r["balance_eth"]),
                 "checked": dt.date.today().isoformat(),
-                "faucet": "TODO - record which faucet or bridge paid this",
             }
         )
-    cfg["networks"] = entries
-    ACCOUNTS_CONFIG.write_text(yaml.safe_dump(cfg, sort_keys=False))
-    print(f"recorded {len(entries)} network(s) in {ACCOUNTS_CONFIG}")
-    print("Fill in the 'faucet' field by hand - it belongs in the report.\n")
+        existing[n.key] = entry
+
+    # Nested under 'account', which is where the committed template puts it.
+    # This previously wrote a second top-level 'networks' key, so the balances
+    # landed somewhere nothing read them and account.networks stayed [].
+    account["networks"] = list(existing.values())
+
+    # Keep the file's leading comment block: safe_dump discards every comment,
+    # and those lines are what say this account must never hold real funds.
+    header = []
+    for line in text.splitlines():
+        if line.startswith("#") or not line.strip():
+            header.append(line)
+        else:
+            break
+
+    body = yaml.safe_dump(cfg, sort_keys=False)
+    ACCOUNTS_CONFIG.write_text("\n".join(header + [body.rstrip()]) + "\n")
+
+    print(f"recorded {len(existing)} network(s) in {ACCOUNTS_CONFIG.name}")
+    todo = [e["key"] for e in existing.values() if str(e.get("faucet", "")).startswith("TODO")]
+    if todo:
+        print(f"Fill in 'faucet' by hand for: {', '.join(todo)} - it belongs "
+              "in the report's experimental setup.\n")
 
 
 def main() -> int:

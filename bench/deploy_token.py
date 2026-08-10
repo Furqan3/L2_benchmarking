@@ -34,6 +34,7 @@ from bench.core.networks import (
     connect_verified,
     load_networks,
 )
+from bench.core.submit import SubmissionError, estimate_gas
 from bench.core.wallet import load_account
 from bench.core.workloads import WORKLOADS_CONFIG
 
@@ -128,12 +129,12 @@ def main() -> int:
     })
 
     try:
-        tx["gas"] = w3.eth.estimate_gas(tx)
-    except Exception as exc:  # noqa: BLE001
-        print(f"\nestimate_gas: {type(exc).__name__}: {exc}")
-        print(f"\n{net.display_name} will not accept this bytecode. If this is "
-              "zkSync, it needs the zksolc toolchain - record that and use a "
-              "network that does.\n")
+        tx["gas"] = estimate_gas(w3, tx)
+    except SubmissionError as exc:
+        print(f"\n{exc}")
+        print(f"\n{net.display_name} will not accept this bytecode. A rollup "
+              "running its own VM - zkSync historically - needs its own "
+              "compiler; record that and deploy where it is accepted.\n")
         return 1
 
     fee_wei = tx["gas"] * tx["gasPrice"]

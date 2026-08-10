@@ -75,8 +75,14 @@ def estimate_gas(w3: Web3, tx: dict) -> int:
     estimate exceeds actual usage several-fold - which is fine for a limit and
     useless as a cost figure. D2 costs from receipts, never from this.
     """
+    # Any gas already on the dict is stripped first. A node reads that field as
+    # the allowance for the simulation, so a placeholder left there - the usual
+    # trick for stopping build_transaction estimating behind your back - comes
+    # back as "gas required exceeds allowance (1)". zkSync ignores the field and
+    # geth does not, so this fails on one chain and not the other.
+    probe = {k: v for k, v in tx.items() if k != "gas"}
     try:
-        return w3.eth.estimate_gas(dict_to_tx(tx))
+        return w3.eth.estimate_gas(dict_to_tx(probe))
     except Exception as exc:  # noqa: BLE001
         raise SubmissionError(f"estimate_gas: {type(exc).__name__}: {exc}") from exc
 

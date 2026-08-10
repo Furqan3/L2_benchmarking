@@ -135,7 +135,15 @@ def main() -> int:
     args = ap.parse_args()
 
     networks = load_networks()
-    keys = funding_priority() if args.all else [args.network]
+    if args.all:
+        # L2s only. Workloads are submitted to rollups; the L1 is where funds
+        # arrive and where t2 and t3 are read from, and it never receives a
+        # workload - so including it would report a missing token there as a
+        # failure forever.
+        keys = [k for k in funding_priority()
+                if k in networks and networks[k].is_l2]
+    else:
+        keys = [args.network]
 
     unknown = [k for k in keys if k not in networks]
     if unknown:

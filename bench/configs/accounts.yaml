@@ -2,6 +2,37 @@
 # Testnet only - this account must never hold real funds.
 # The private key is in .env as BENCH_PRIVATE_KEY, which is gitignored.
 account:
-  address: "0xAEb018EdC9cA4D70D9488FF2d38F74dd81Ad3122"
+  address: '0xAEb018EdC9cA4D70D9488FF2d38F74dd81Ad3122'
   created: 2026-08-07
-  networks: []  # filled in as faucets pay out (task A3)
+  networks:
+  - faucet: TODO - which faucet or bridge paid this
+    key: sepolia
+    display_name: Ethereum Sepolia
+    chain_id: 11155111
+    balance_eth: 0.5325589323846343
+    checked: '2026-08-10'
+  - faucet: Bridged 0.05 ETH from Ethereum Sepolia via portal.zksync.io/bridge
+      on 2026-08-10; arrived as 0.050102 (zkSync refunds unused L2 deposit gas).
+    key: zksync_sepolia
+    display_name: zkSync Era Sepolia
+    chain_id: 300
+    balance_eth: 0.04985346300626202
+    checked: '2026-08-10'
+  - faucet: TODO - which faucet or bridge paid this
+    key: polygon_zkevm_cardona
+    display_name: Polygon zkEVM Cardona
+    chain_id: 2442
+    balance_eth: 0.0
+    checked: '2026-08-10'
+  - faucet: TODO - which faucet or bridge paid this
+    key: op_sepolia
+    display_name: OP Sepolia
+    chain_id: 11155420
+    balance_eth: 0.01
+    checked: '2026-08-10'
+  - faucet: TODO - which faucet or bridge paid this
+    key: arbitrum_sepolia
+    display_name: Arbitrum Sepolia
+    chain_id: 421614
+    balance_eth: 0.0
+    checked: '2026-08-10'
