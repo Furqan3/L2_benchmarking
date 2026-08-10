@@ -47,6 +47,17 @@ class Network:
     def address_url(self, address: str) -> str:
         return f"{self.explorer.rstrip('/')}/address/{address}"
 
+    def tx_url(self, tx_hash: str) -> str:
+        """An explorer link for a transaction hash, prefixed or not.
+
+        Note the explicit prefix test rather than lstrip("0x"): lstrip strips
+        any leading '0' and 'x' characters, so a hash beginning with a zero
+        would lose it and the link would point at nothing.
+        """
+        if not tx_hash.startswith(("0x", "0X")):
+            tx_hash = "0x" + tx_hash
+        return f"{self.explorer.rstrip('/')}/tx/{tx_hash}"
+
 
 def _config() -> dict:
     return yaml.safe_load(NETWORKS_CONFIG.read_text()) or {}
@@ -57,7 +68,18 @@ def load_networks() -> dict[str, Network]:
     load_env()
     out: dict[str, Network] = {}
     for key, spec in (_config().get("networks") or {}).items():
-        rpc = os.environ.get(f"{RPC_OVERRIDE_PREFIX}{key.upper()}", spec["rpc"])
+        var = f"{RPC_OVERRIDE_PREFIX}{key.upper()}"
+        rpc = os.environ.get(var, spec["rpc"])
+        if "://" not in rpc:
+            # The easy mistake is pasting the provider's project id or API key
+            # rather than the whole URL. Caught here with the fix spelled out,
+            # because the alternative is a MissingSchema traceback from deep
+            # inside requests that says nothing about which variable is wrong.
+            raise ValueError(
+                f"{var} is not a URL: '{rpc[:12]}...'. It needs the full "
+                f"endpoint, for example "
+                f"https://sepolia.infura.io/v3/<project-id>"
+            )
         out[key] = Network(
             key=key,
             display_name=spec["display_name"],
@@ -83,7 +105,15 @@ def faucets() -> dict[str, list[dict]]:
     return _config().get("faucets") or {}
 
 
-def connect(network: Network, timeout: float = 10.0) -> Web3:
+# Ten seconds is ample for a balance or a receipt and far too tight for the
+# log queries phase C issues over thousands of blocks, which routinely take
+# tens of seconds even when the endpoint is healthy. A read timeout there is
+# indistinguishable from an endpoint that has no such logs, so it defaults
+# generously and callers doing quick polls can pass something shorter.
+DEFAULT_TIMEOUT_S = 60.0
+
+
+def connect(network: Network, timeout: float = DEFAULT_TIMEOUT_S) -> Web3:
     """An HTTP connection to one network. Does not verify the chain id."""
     return Web3(Web3.HTTPProvider(network.rpc, request_kwargs={"timeout": timeout}))
 
@@ -96,7 +126,7 @@ class ChainIdMismatch(RuntimeError):
     """
 
 
-def connect_verified(network: Network, timeout: float = 10.0) -> Web3:
+def connect_verified(network: Network, timeout: float = DEFAULT_TIMEOUT_S) -> Web3:
     """Connect and confirm the endpoint reports the chain id we expect."""
     w3 = connect(network, timeout=timeout)
     actual = w3.eth.chain_id

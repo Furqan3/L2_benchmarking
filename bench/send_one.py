@@ -20,6 +20,7 @@ import time
 from web3 import Web3
 
 from bench.core.networks import ChainIdMismatch, connect_verified, load_networks
+from bench.core.submit import to_hex
 from bench.core.wallet import load_account
 
 # A plain self-transfer. Kept as a constant because B2 will need the same
@@ -127,8 +128,8 @@ def main() -> int:
 
     t0 = time.time()
     tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
-    print(f"\nsent     {tx_hash.hex()}")
-    print(f"explorer {net.explorer.rstrip('/')}/tx/0x{tx_hash.hex().lstrip('0x')}")
+    print(f"\nsent     {to_hex(tx_hash)}")
+    print(f"explorer {net.tx_url(to_hex(tx_hash))}")
 
     try:
         t1, receipt = wait_for_receipt(w3, tx_hash)
