@@ -302,6 +302,77 @@ def main() -> int:
 
     (out_dir / "assumptions.txt").write_text("\n".join(lines) + "\n")
 
+    # --- E3: one table, both architectures, all three levels ---------------
+    comparison = [
+        "Cross-architecture comparison (task E3)",
+        "=" * 78,
+        f"ETH/USD {eth_usd} from {rate_source}. Latency medians over successes.",
+        "",
+        f"{'rollup':<22}{'family':<12}{'level':<16}{'median':>12}{'kind':>12}",
+        "-" * 78,
+    ]
+    for (network_key, workload), group in sorted(groups.items()):
+        net = networks.get(network_key)
+        ok = [r for r in group if r["outcome"] in Outcome.MEASURABLE]
+        if not ok:
+            continue
+        comparison.append(f"{network_key} / {workload}")
+        for key, label in (("t1", "full trust"), ("t2", "partial trust"),
+                           ("t3", "trustless")):
+            values = sorted(r[key] - r["t0"] for r in ok
+                            if r.get(key) and r.get("t0"))
+            if not values:
+                comparison.append(f"{'':<22}{'':<12}{label:<16}{'unavailable':>12}")
+                continue
+            median = st.median(values)
+            # Units chosen per magnitude: the three levels span seconds to days
+            # and one shared unit makes the interesting one unreadable.
+            if median < 120:
+                shown = f"{median:.2f} s"
+            elif median < 7200:
+                shown = f"{median / 60:.2f} m"
+            else:
+                shown = f"{median / 86400:.2f} d"
+            kinds = {r.get(f"{key}_kind") for r in ok if r.get(key)}
+            kind = "/".join(sorted(k for k in kinds if k)) or "observed"
+            comparison.append(
+                f"{'':<22}{(net.family or '-'):<12}{label:<16}{shown:>12}{kind:>12}"
+            )
+        # Cost, where the rollup exposes enough to attribute it.
+        entry = next((e for e in summary_rows
+                      if e["network"] == network_key
+                      and e["workload"] == workload), None)
+        if entry and entry.get("l1_cost_per_tx_usd") is not None:
+            comparison.append(f"{'':<22}{'':<12}{'L1 cost / tx':<16}"
+                              f"{'$' + format(entry['l1_cost_per_tx_usd'], '.8f'):>12}")
+        else:
+            comparison.append(f"{'':<22}{'':<12}{'L1 cost / tx':<16}"
+                              f"{'unavailable':>12}")
+        comparison.append("")
+
+    comparison += [
+        "READING THIS TABLE",
+        "-" * 78,
+        "The 'kind' column is not decoration. A ZK rollup's trustless finality is",
+        "OBSERVED: a proof was verified in an Ethereum block whose timestamp we",
+        "read. An optimistic rollup's is DERIVED: it is the moment a challenge",
+        "window closes, and nothing happens then - no transaction, no event. It is",
+        "a deadline we computed from the output proposal plus the challenge",
+        "period read from the OptimismPortal.",
+        "",
+        "Those two numbers must not be compared as though they were the same kind",
+        "of measurement, and the difference is the point rather than a caveat.",
+        "",
+        "'estimated' on partial trust means the batch transaction was matched by",
+        "block range, not named by the rollup. OP Stack chains expose no mapping",
+        "from an L2 transaction to the batch carrying it without decoding the blob.",
+        "",
+        "L1 cost is unavailable for OP Stack for the same reason: the number of",
+        "transactions sharing a batch is not exposed, so there is no denominator.",
+        "Reported unavailable rather than divided by a guess.",
+    ]
+    (out_dir / "comparison.txt").write_text("\n".join(comparison) + "\n")
+
     print(f"\nwrote {out_dir}/")
     print(f"  raw_transactions.csv   {len(rows)} rows")
     print(f"  summary.csv            {len(summary_rows)} cells")

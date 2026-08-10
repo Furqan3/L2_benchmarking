@@ -29,6 +29,9 @@ from the end of the previous one silently inflates every trustless figure.
                   it the polling overhead is invisible and t1 looks exact.
     t2            L1 block timestamp of the batch commit (C3)
     t3            L1 block timestamp of the proof, or a derived deadline (C4/E2)
+    t2_kind       "observed" when the rollup named the commit transaction,
+                  "estimated" when it was matched by block range because the
+                  rollup exposes no mapping - an OP Stack chain does not.
     t3_kind       "observed" or "derived" - E2 requires these be distinguished
     t3_source     which event t3 came from: "prove", "execute", or
                   "challenge_window". C4 step 3 asks that proving and executing
@@ -93,6 +96,7 @@ def new_record(**fields: Any) -> dict:
         "l2_block_ts": None,
         "t2": None,
         "t3": None,
+        "t2_kind": None,
         "t3_kind": None,
         "t3_source": None,
         "batch": None,

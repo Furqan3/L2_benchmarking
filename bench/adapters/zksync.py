@@ -95,7 +95,9 @@ class ZkSyncAdapter:
             _BATCH_CACHE[key] = details
         return details
 
-    def settlement(self, w3_l2, tx_hash: str) -> Settlement:
+    def settlement(self, w3_l2, w3_l1, network, tx_hash: str) -> Settlement:
+        # w3_l1 and network are unused here: zkSync answers from its own
+        # RPC. They are in the signature so every adapter shares one.
         try:
             receipt = w3_l2.eth.get_transaction_receipt(tx_hash)
         except Exception as exc:  # noqa: BLE001

@@ -67,10 +67,27 @@ networks:
     explorer: https://sepolia-optimism.etherscan.io
     settles_on: sepolia
     bridge: https://app.optimism.io/bridge
+    # Where batches are posted. Confirmed 2026-08-10 by reading batcherHash from
+    # the L1Block predeploy on the L2 and then scanning Sepolia for that
+    # address's transactions - the batch inbox found empirically matches the
+    # superchain registry's batch_inbox_addr, which is a useful cross-check.
+    l1_batch_inbox: "0xff00000000000000000000000000000011155420"
+    l1_batcher: "0x8f23BB38F531600e5d8FDDaAEC41F13FaB46E98c"
+    # Where output roots are proposed and challenged. Fault proofs, not the
+    # legacy L2OutputOracle: respectedGameType is 8.
+    l1_dispute_game_factory: "0x05F9613aDB30026FFd634f38e5C4dFd30a197Fa1"
+    l1_portal: "0x16Fc5058F25648194471939df75CF27A2fdC48BC"
     notes: >
       Optimistic target for phase E. Trustless finality is a challenge window
-      closing, not a proof verifying - and the testnet window is far shorter
-      than mainnet's seven days. Record both.
+      closing, not a proof verifying.
+
+      MEASURED 2026-08-10, and it contradicts the usual assumption that
+      testnets shorten their windows: OP Sepolia does not. Read from the
+      OptimismPortal itself, proofMaturityDelaySeconds is 604800 - a full seven
+      days, the same as mainnet - and the fault dispute game's maxClockDuration
+      is 302400, three and a half days. So t3 here cannot be observed inside an
+      eight-week project at all. It is computed as a deadline and marked
+      derived, which is precisely what task E2 exists to handle.
 
   arbitrum_sepolia:
     display_name: Arbitrum Sepolia

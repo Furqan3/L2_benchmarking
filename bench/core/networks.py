@@ -47,6 +47,13 @@ class Network:
     #: getters on it revert. C2's fallback route needs both to tell a commit
     #: transaction's recipient from the contract whose logs carry the events.
     l1_validator_timelock: str | None = None
+    #: Optimistic-rollup settlement addresses (task E1). Batches go to an inbox
+    #: from a known batcher; output roots are proposed to a dispute game
+    #: factory and become trustless only after a challenge period.
+    l1_batch_inbox: str | None = None
+    l1_batcher: str | None = None
+    l1_dispute_game_factory: str | None = None
+    l1_portal: str | None = None
 
     @property
     def is_l2(self) -> bool:
@@ -102,6 +109,10 @@ def load_networks() -> dict[str, Network]:
             l1_contract=spec.get("l1_contract"),
             l1_abi=spec.get("l1_abi"),
             l1_validator_timelock=spec.get("l1_validator_timelock"),
+            l1_batch_inbox=spec.get("l1_batch_inbox"),
+            l1_batcher=spec.get("l1_batcher"),
+            l1_dispute_game_factory=spec.get("l1_dispute_game_factory"),
+            l1_portal=spec.get("l1_portal"),
         )
     return out
 

@@ -17,6 +17,11 @@ OBSERVED = "observed"
 #: in the output, because presenting a computed deadline as an observation
 #: would be the most misleading thing in the whole study.
 DERIVED = "derived"
+#: The value was matched by proximity rather than looked up or computed. Weaker
+#: than observed and stronger than derived: a real L1 transaction, believed to
+#: carry ours because of when it was posted, without the blob being decoded to
+#: prove it.
+ESTIMATED = "estimated"
 
 
 class SettlementUnavailable(RuntimeError):
@@ -48,8 +53,16 @@ class Settlement:
     #: however much of the batch belonged to other users.
     batch_tx_count: int | None = None
     status: str | None = None       # the rollup's word for its stage
+    #: How t2 was arrived at. A ZK rollup hands back the exact commit hash;
+    #: an optimistic rollup does not, and matching by block range gives a
+    #: batch transaction we believe contains ours without proving it does.
+    t2_kind: str = OBSERVED
     t3_kind: str = OBSERVED
     t3_source: str | None = None    # which event t3 was taken from
+    #: A computed t3 for rollups where trustless finality is a deadline rather
+    #: than an event. Set only when t3_kind is DERIVED; there is no L1
+    #: transaction to look the timestamp up from, because nothing happens.
+    t3_derived_at: int | None = None
 
     @property
     def complete(self) -> bool:
@@ -62,6 +75,12 @@ class Adapter(Protocol):
 
     family: str
 
-    def settlement(self, w3_l2, tx_hash: str) -> Settlement:
-        """Where this L2 transaction settled on the L1, as far as is known."""
+    def settlement(self, w3_l2, w3_l1, network, tx_hash: str) -> Settlement:
+        """Where this L2 transaction settled on the L1, as far as is known.
+
+        Every adapter takes the same arguments even when it does not need them
+        all. A ZK rollup answers from its own RPC and ignores the L1 handle; an
+        optimistic rollup cannot answer without it. Keeping one signature is
+        what lets the resolve pass stay architecture-blind (E1 step 4).
+        """
         ...

@@ -138,7 +138,7 @@ together, and what every file in the repository is for.</p>
   <tr><td>Supervisor</td><td>Prof. Sara Rouhani, TCDT Lab</td></tr>
   <tr><td>Intern</td><td>Ujala Kiran</td></tr>
   <tr><td>Approach</td><td>Observational — measure public networks, host nothing</td></tr>
-  <tr><td>Status</td><td>24 of 38 tasks complete. Phases A–D done; minimum viable deliverable reached</td></tr>
+  <tr><td>Status</td><td>26 of 38 tasks complete. Phases A–D done, E1 and E2 done; both architectures measured</td></tr>
   <tr><td>Date</td><td>10 August 2026</td></tr>
 </table>
 
@@ -200,7 +200,7 @@ differently once you stop trusting the sequencer.</p>
   <tr><td>B</td><td>Make it real</td><td>B1–B5</td><td class="done">Complete</td></tr>
   <tr><td>C</td><td>The contribution</td><td>C1–C6</td><td class="done">Complete</td></tr>
   <tr><td>D</td><td>Make it defensible</td><td>D1–D5</td><td class="done">Complete — minimum viable deliverable</td></tr>
-  <tr><td>E</td><td>The comparison</td><td>E1–E3</td><td class="pending">Not started — OP Sepolia funded and ready</td></tr>
+  <tr><td>E</td><td>The comparison</td><td>E1–E3</td><td class="pending">E1, E2 done; E3 in progress</td></tr>
   <tr><td>F</td><td>Data collection</td><td>F1–F4</td><td class="not">Not started</td></tr>
   <tr><td>G</td><td>Analysis</td><td>G1–G5</td><td class="not">Not started</td></tr>
   <tr><td>H</td><td>Write and deliver</td><td>H1–H5</td><td class="not">Not started</td></tr>
@@ -208,8 +208,8 @@ differently once you stop trusting the sequencer.</p>
 
 <h3>Results obtained so far</h3>
 
-<p>zkSync Era Sepolia, 109 transactions, all successful, all settled to Ethereum
-Sepolia in batch 21623.</p>
+<p>165 transactions across two architectures, every one successful, every one
+settled: 109 on zkSync Era Sepolia, all in batch 21623, and 56 on OP Sepolia.</p>
 
 <table class="grid">
   <tr><th style="width:130px">Level</th><th class="num" style="width:70px">Median</th><th class="num" style="width:70px">p95</th><th class="num" style="width:70px">Min</th><th class="num" style="width:70px">Max</th></tr>
@@ -238,6 +238,47 @@ ETH) divided by the 875 transactions sharing the batch.</p>
   demonstrate that the pipeline works end to end; they are not yet a
   characterisation of the network. Task F2 — five repetitions, at least an hour
   apart — is what turns them into one.</p>
+</div>
+
+<h3>The cross-architecture comparison</h3>
+
+<p>Same workload, same code path, both rollups. This is the result the project
+exists to produce.</p>
+
+<table class="grid">
+  <tr><th style="width:118px">Level</th><th class="num" style="width:88px">zkSync Era</th><th style="width:66px">kind</th><th class="num" style="width:88px">OP Sepolia</th><th style="width:66px">kind</th><th>ratio</th></tr>
+  <tr><td>Full trust (t₁)</td><td class="num">18.07 s</td><td>observed</td><td class="num">14.97 s</td><td>observed</td><td>comparable</td></tr>
+  <tr><td>Partial trust (t₂)</td><td class="num">25.49 min</td><td>observed</td><td class="num">1.99 min</td><td>estimated</td><td>OP <strong>12.8x faster</strong></td></tr>
+  <tr><td>Trustless (t₃)</td><td class="num">36.69 min</td><td>observed</td><td class="num"><strong>7.01 days</strong></td><td>derived</td><td>OP <strong>275x slower</strong></td></tr>
+</table>
+
+<p>Native transfer, batch of fifty, both rollups. Like for like: an earlier
+version of this table compared OP's single-transaction run against zkSync's
+batch of fifty and made the optimistic rollup look thirty times faster at full
+trust. It is not. At matched batch size the two are within a few seconds of each
+other, and the comparison only becomes interesting further down the table.</p>
+
+<div class="callout">
+  <div class="label">The inversion, and why the kind column is not decoration</div>
+  <p>At full trust the two architectures are indistinguishable in practice. The
+  optimistic rollup is then about thirteen times faster at partial trust, because
+  it posts batches to the L1 far more often - and about two hundred and
+  seventy-five times slower at trustless finality. Which rollup is "faster"
+  depends entirely on which trust assumption was meant, and that is exactly what
+  a single-number latency benchmark cannot show.</p>
+  <p>But the two t₃ figures are not the same kind of measurement and must never
+  be tabulated as though they were. zkSync's is <strong>observed</strong>: a
+  proof was verified in an Ethereum block whose timestamp we read, and the
+  transaction hash is in the output. OP's is <strong>derived</strong>: it is the
+  moment a challenge window closes, and <em>nothing happens then</em> — no
+  transaction, no event, nothing to point at. It is a deadline computed from the
+  output proposal plus the challenge period read from the OptimismPortal.</p>
+  <p>Likewise OP's t₂ is <strong>estimated</strong> — the batch transaction was
+  matched by block range rather than named by the rollup, because an OP Stack
+  chain exposes no mapping from a transaction to the batch carrying it without
+  decoding the blob. And its L1 cost is reported <strong>unavailable</strong>,
+  because the batch's transaction count is not exposed and there is therefore no
+  denominator to divide by.</p>
 </div>
 
 <h2 class="break">3 · How the system flows</h2>
@@ -516,6 +557,19 @@ achievable rather than aspirational.</p>
 </div>
 
 <div class="file">
+  <div><span class="path">bench/adapters/optimism.py</span><span class="tag">E1 · E2</span></div>
+  <p class="why">Reconstructs settlement for OP Stack chains, which expose none
+  of what zkSync hands over. t₂ is found by reading the L2 block's L1 origin from
+  the L1Block predeploy, anchoring by timestamp, and scanning forward for the
+  batcher's posting — a real L1 transaction, matched by proximity rather than
+  proven, and recorded as estimated. t₃ is computed from the dispute game's
+  proposal time plus the challenge period read from the OptimismPortal, and
+  recorded as derived.</p>
+  <div class="api">OptimismAdapter · l1_origin · block_at_or_after · scan_postings ·
+  find_batch_posting · challenge_period · game_covering · settlement</div>
+</div>
+
+<div class="file">
   <div><span class="path">bench/adapters/__init__.py</span><span class="tag">C2 · E1</span></div>
   <p class="why">Maps a network's <code>family</code> to its adapter. Raises rather
   than returning a do-nothing default, because a rollup with no adapter would
@@ -634,6 +688,27 @@ export rather than hidden by a plausible-looking number. The workload difference
 is real and appears in L2 gas, where zkSync prices pubdata: 82,995 for a native
 transfer against 121,916 for an ERC-20 transfer.</p>
 
+<h4>An optimistic testnet does not shorten its challenge window</h4>
+<p>The implementation handbook states that testnets "use drastically shortened
+challenge windows — around an hour where mainnet takes seven days". Read
+directly from the OptimismPortal on Sepolia, OP Sepolia's
+<code>proofMaturityDelaySeconds</code> is 604800 — a full seven days, identical
+to mainnet — and the fault dispute game's <code>maxClockDuration</code> is
+302400, three and a half days. Trustless finality on this rollup therefore
+<strong>cannot be observed inside an eight-week project at all</strong>, under
+any circumstances. It has to be computed and declared derived. That is a
+finding about the network rather than an obstacle to work around.</p>
+
+<h4>A settlement timestamp nine seconds before the transaction</h4>
+<p>Matching an OP Stack batch by scanning forward from the L2 block's L1 origin
+produced a t₂ that preceded t₀ — a batch posted before our transaction existed,
+which cannot possibly contain it. The cause is that the L1 origin lags the L1
+head by a sequencer window, so the scan began in the past. The scan now anchors
+by timestamp, and a standing invariant refuses any settlement timestamp earlier
+than t₀ and says so. The invariant matters more than the fix: a future matching
+heuristic making the same class of mistake now fails loudly instead of producing
+a negative latency somebody has to notice by eye.</p>
+
 <h4>Full-trust latency depends on what you mean by it</h4>
 <p>Measured t₁ exceeds the L2 block's own timestamp by a median of 17.95 s for
 batched submissions. The sequencer timestamps the block near submission but does
@@ -664,10 +739,10 @@ upper bound. Both are recorded so the gap is visible.</p>
 
 <table class="grid">
   <tr><th style="width:60px">Tasks</th><th style="width:170px">Work</th><th>Why it matters now</th></tr>
-  <tr><td>E1–E3</td><td>Optimistic rollup adapter and cross-architecture run</td>
-      <td>The project plan names Optimistic Rollups explicitly, and the
-      ZK-versus-optimistic inversion is the finding none of the surveyed papers
-      produced. OP Sepolia is funded with its token deployed.</td></tr>
+  <tr><td>E3</td><td>Finish the cross-architecture table</td>
+      <td>E1 and E2 are done and the inversion is visible. E3 needs OP's
+      settlement resolved across all 56 rows and both rollups run close
+      together in time with the L1 gas price recorded at each.</td></tr>
   <tr><td>F2 · F3</td><td>Repetitions and batch-size sweep</td>
       <td>Turns settlement from n = 1 into a distribution. Should start
       immediately and run in the background — it costs waiting, not work.</td></tr>
@@ -681,6 +756,16 @@ upper bound. Both are recorded so the gap is visible.</p>
       <td>No code, no data, no funds. Four of its six source papers are already
       in the project directory.</td></tr>
 </table>
+
+<h3>A limit worth planning around</h3>
+
+<p>Because OP Sepolia's challenge window is a full seven days, the optimistic
+side of this study can never contribute an <em>observed</em> trustless
+timestamp. Every t₃ on that side will be derived for the lifetime of the
+project. That is not a gap to close but a property to report: it is why the
+comparison table carries a kind column, and it is itself part of the finding —
+the trustless guarantee an optimistic rollup offers is not something a user can
+watch arrive.</p>
 
 <h3>Outstanding decisions that need the supervisor</h3>
 

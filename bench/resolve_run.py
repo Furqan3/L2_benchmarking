@@ -78,7 +78,7 @@ def resolve_file(path, networks: dict[str, Network], verbose: bool = True) -> di
         for row in group:
             had_t2, had_t3 = row.get("t2"), row.get("t3")
             try:
-                settlement = adapter.settlement(w3_l2, row["hash"])
+                settlement = adapter.settlement(w3_l2, w3_l1, net, row["hash"])
             except SettlementUnavailable as exc:
                 stats["errors"] += 1
                 if verbose and stats["errors"] == 1:

@@ -13,8 +13,45 @@ Two of the three timestamps come from Ethereum rather than from the rollup. That
 is the central design insight: the study is purely **observational**, measuring
 public networks and hosting no infrastructure of its own.
 
-Mitacs Globalink 2026, project 50081. Supervisor: Prof. Sara Rouhani, TCDT Lab.
-Full task breakdown: [`L2_Implementation_Handbook.pdf`](L2_Implementation_Handbook.pdf).
+Mitacs Globalink 2026, project 50081, **scalability** track. Supervisor:
+Prof. Sara Rouhani, TCDT Lab.
+
+- Task breakdown: [`L2_Implementation_Handbook.pdf`](L2_Implementation_Handbook.pdf)
+- What has been built and why: [`docs/L2_Benchmark_Project_Handbook.pdf`](docs/L2_Benchmark_Project_Handbook.pdf)
+
+## Results so far
+
+165 transactions, 100% success, across two rollup architectures.
+
+
+| Level | zkSync Era Sepolia | kind | OP Sepolia | kind | ratio |
+|---|---|---|---|---|---|
+| Full trust (`t1`) | 18.07 s | observed | 14.97 s | observed | comparable |
+| Partial trust (`t2`) | 25.49 min | observed | 1.99 min | *estimated* | OP **12.8x faster** |
+| Trustless (`t3`) | 36.69 min | observed | **7.01 days** | *derived* | OP **275x slower** |
+
+Same workload (native transfer), same batch size (50), both rollups.
+
+At full trust the two architectures are **near-identical** — the sequencer
+accepts in seconds either way. OP then pulls sharply ahead at partial trust,
+because it posts batches to L1 far more often. And then it loses by more than
+two orders of magnitude at trustless finality.
+
+**That crossover is the result this project exists to produce**, and it is
+precisely what a single-number latency benchmark cannot show: whichever rollup
+you declare "faster" depends entirely on which trust assumption you meant.
+
+The `kind` column is not decoration. zkSync's `t3` is *observed* — a proof was
+verified in an Ethereum block whose timestamp we read, and the hash is in the
+output. OP's is *derived*: nothing happens when a challenge window closes, so it
+is a deadline computed from the output proposal plus the challenge period read
+from the OptimismPortal. The two must never be tabulated as though they were the
+same kind of measurement.
+
+> **Caveat.** The zkSync figures come from 109 transactions but a **single
+> batch**, submitted inside one eleven-minute window. Settlement therefore has
+> n = 1 and the percentiles do not yet mean what percentiles normally mean.
+> Task F2 — five repetitions at least an hour apart — is what fixes this.
 
 ## Setup
 
@@ -46,6 +83,16 @@ account that produced it). It refuses to overwrite an existing key.
 
 > **This account is testnet-only and must never hold real funds.**
 
+Public RPC endpoints throttle, and Phase C queries wide block ranges. Override
+any endpoint from `.env` with the **full URL**, not just the project id:
+
+```sh
+BENCH_RPC_SEPOLIA=https://sepolia.infura.io/v3/<project-id>
+```
+
+Deploying the workload token also needs a Solidity compiler, which
+`py-solc-x` downloads on first use. No manual install required.
+
 ## Commands
 
 Every command below is run from the repository root.
@@ -57,10 +104,6 @@ python -m bench.create_wallet      # generate the wallet; refuses to overwrite
 python -m bench.core.wallet        # print the address loaded from .env
 ```
 
-`bench.core.wallet` is the done-when test for A2: it loads the key from the
-environment and fails loudly if the derived address disagrees with the one
-recorded in `accounts.yaml`.
-
 ### Funding and connectivity
 
 ```sh
@@ -70,39 +113,80 @@ python -m bench.check_funds --record     # write balances into accounts.yaml
 python -m bench.check_funds --faucets    # list faucets, grouped by gatekeeping
 ```
 
-This is the done-when test for both A3 and A4 — it reports chain ID, current
-block, balance and status per network, then prints the specific next action for
-whatever is missing. Exit status is `0` when every required network is funded and
-`1` otherwise, so it can gate a later script instead of being read by eye.
+Reports chain ID, current block, balance and status per network, then prints the
+specific next action for whatever is missing. Exit status is `0` when every
+required network is funded and `1` otherwise, so it can gate a later script.
 
-### Sending a transaction
+It also flags **stalled endpoints** — an RPC that answers correctly while serving
+state frozen weeks in the past. That failure mode is invisible to a chain-ID
+check and produces results that look entirely ordinary.
+
+### Workloads
 
 ```sh
-python -m bench.send_one --dry-run            # build and sign locally, no broadcast
-python -m bench.send_one                      # broadcast on Sepolia
-python -m bench.send_one -n zksync_sepolia    # once the bridge has landed
-python -m bench.send_one --value-wei 1000     # send a non-zero amount to ourselves
+python -m bench.deploy_token -n zksync_sepolia --dry-run   # will the chain take it?
+python -m bench.deploy_token -n zksync_sepolia --record    # deploy, write the address
+python -m bench.check_workloads -n zksync_sepolia          # gas-estimate both workloads
+python -m bench.check_workloads --all                      # every L2 in funding priority
 ```
 
-`--dry-run` needs no funds at all, since signing happens locally — the fastest
-way to confirm the whole path is sound while waiting on a faucet or a bridge.
-The default sends zero value to our own address, so nothing is spent but gas.
+`--dry-run` asks the node whether it will accept the bytecode at all, which is
+how "does this rollup need its own compiler" gets answered by measurement.
+
+### Running an experiment
+
+```sh
+python -m bench.submit_run -n zksync_sepolia -w native_transfer -c 50
+python -m bench.submit_run -n op_sepolia -w erc20_transfer -c 5
+python -m bench.submit_run -n op_sepolia -w native_transfer -c 1 --dry-run
+```
+
+The submit pass. Numbers a batch consecutively from one fetched nonce,
+broadcasts in index order, polls every receipt round-robin, writes one JSON
+object per transaction to `bench/results/<run_id>.jsonl`, and **exits as soon as
+`t1` is known** — it never waits for settlement.
+
+```sh
+python -m bench.resolve_run                # one pass over every run file
+python -m bench.resolve_run --run <run_id> # just one
+python -m bench.resolve_run --watch 300    # repeat until nothing is outstanding
+```
+
+The resolve pass. Finds rows still missing `t2` or `t3`, asks the rollup where
+they settled, writes the files back. Safe to run repeatedly and safe to
+interrupt — it recomputes what is outstanding from disk every pass and holds
+nothing between passes.
+
+### Export and checks
+
+```sh
+python -m bench.export                  # raw CSV, summary, assumptions, comparison
+python -m bench.export --eth-usd 4200   # override the configured ETH rate
+python -m bench.check_config            # find config keys nothing reads
+```
+
+`export` writes four files to `bench/export/`: `raw_transactions.csv` (one row
+per transaction, the primary artefact), `summary.csv` (derived, never a
+replacement), `assumptions.txt` (the ETH rate, its source, and every declared
+limitation) and `comparison.txt` (the cross-architecture table).
+
+### Documentation
+
+```sh
+python docs/build_handbook.py    # regenerate the project handbook PDF
+```
 
 ### Network keys
 
 Accepted by `-n` / `--network`, defined in `bench/configs/networks.yaml`:
 
-| Key | Network | Chain ID |
-|---|---|---|
-| `sepolia` | Ethereum Sepolia | 11155111 |
-| `zksync_sepolia` | zkSync Era Sepolia | 300 |
-| `polygon_zkevm_cardona` | Polygon zkEVM Cardona | 2442 |
-| `op_sepolia` | OP Sepolia | 11155420 |
-| `arbitrum_sepolia` | Arbitrum Sepolia | 421614 |
-
-Funding priority is `sepolia` → `zksync_sepolia` → `op_sepolia`: one L1 source,
-one ZK rollup and one optimistic rollup is the minimum for the cross-architecture
-comparison in Phase E.
+| Key | Network | Chain ID | Status |
+|---|---|---|---|
+| `sepolia` | Ethereum Sepolia | 11155111 | funded, L1 settlement layer |
+| `zksync_sepolia` | zkSync Era Sepolia | 300 | funded, primary ZK target |
+| `op_sepolia` | OP Sepolia | 11155420 | funded, optimistic target |
+| `polygon_zkevm_cardona` | Polygon zkEVM Cardona | 2442 | **public RPC stalled** |
+| `arbitrum_sepolia` | Arbitrum Sepolia | 421614 | unfunded, optional |
 
 ## Repository layout
 
@@ -110,113 +194,57 @@ comparison in Phase E.
 bench/
   adapters/   one file per rollup - the only per-network code
   core/       submit, resolve, metrics - network-independent
-  configs/    one YAML per experiment
+  configs/    one YAML per concern; a run is described entirely by these
   abis/       committed contract ABIs
-  results/    gitignored output
-  analysis/   notebooks and plotting
+  contracts/  the workload token and its vendored OpenZeppelin sources
+  results/    gitignored JSONL output
+  export/     gitignored CSV deliverables
+docs/         project handbook and its build script
 ```
 
-`.env`, `results/` and the virtualenv are gitignored. Configs and ABIs are
-committed deliberately: fetching an ABI at runtime would make results depend on a
-third party staying online.
+The separation that matters is `core/` against `adapters/`. Everything in
+`core/` works in terms of a `Settlement` record and never asks which rollup it is
+talking to, so adding an architecture means adding one file to `adapters/`.
+
+`.env`, `results/`, `export/` and the virtualenv are gitignored. Configs and ABIs
+are committed deliberately: fetching an ABI at runtime would make results depend
+on a third party staying online.
 
 ## Timeline
 
-Phase A is complete apart from bridging funds onto the L2s. Sepolia holds
-**0.53 ETH**; all four L2 balances are currently zero, which blocks B2 onward.
+**Phases A–D are complete — the minimum viable deliverable.** E1 and E2 are done.
 
-### Phase A — Unblock
-
-| Task | | Status |
+| Phase | | Status |
 |---|---|---|
-| A1 | Clean repository | Done |
-| A2 | Test wallet created and recorded | Done |
-| A3 | Testnet funds | **In progress** — Sepolia funded; L2 bridges pending |
-| A4 | Verify RPC endpoints | Done — all five reachable, chain IDs match |
-| A5 | Send one transaction by hand | Done — confirmed on Sepolia |
-
-### Phase B — Make it real
-
-| Task | | Status |
-|---|---|---|
-| B1 | Workload contracts (native + ERC-20) | Remaining |
-| B2 | Real submission — **the keystone** | Remaining |
-| B3 | Nonce management under concurrency | Remaining |
-| B4 | Full-trust finality `t1` | Remaining |
-| B5 | Honest failure handling | Remaining |
-
-### Phase C — The contribution
-
-| Task | | Status |
-|---|---|---|
-| C1 | L1 contract addresses and ABIs | Remaining |
-| C2 | Map L2 tx to its L1 settlement — **the crux** | Remaining |
-| C3 | Partial-trust finality `t2` | Remaining |
-| C4 | Trustless finality `t3` | Remaining |
-| C5 | Independent interval measurement | Remaining |
-| C6 | Two-pass submit/resolve runner | Remaining |
-
-### Phase D — Make it defensible
-
-| Task | | Status |
-|---|---|---|
-| D1 | Raw per-transaction export | Remaining |
-| D2 | Real L1 costs from receipts | Remaining |
-| D3 | Data-availability size (blob vs calldata) | Remaining |
-| D4 | Honest achieved throughput | Remaining |
-| D5 | Remove config that silently does nothing | Remaining |
-
-**Phases A–D together are the minimum viable deliverable**: real transactions
-with verifiable hashes, latency at three finality levels, cost from real L1 gas
-with stated assumptions, and raw exported data.
-
-### Phase E — The comparison
-
-| Task | | Status |
-|---|---|---|
-| E1 | Optimistic rollup adapter | Remaining |
-| E2 | Challenge-window finality model | Remaining |
-| E3 | Cross-architecture comparison run | Remaining |
-
-### Phase F — Data collection
-
-| Task | | Status |
-|---|---|---|
-| F1 | Experiment matrix | Remaining |
-| F2 | Repetitions (5+ per configuration) | Remaining |
-| F3 | Batch-size sweep | Remaining |
-| F4 | Read-only mainnet observation | Remaining |
-
-### Phase G — Analysis
-
-| Task | | Status |
-|---|---|---|
-| G1 | Latency CDFs | Remaining |
-| G2 | Finality inversion figure — **the headline result** | Remaining |
-| G3 | Cost breakdown | Remaining |
-| G4 | Reproducibility check | Remaining |
-| G5 | Threats to validity | Remaining |
-
-### Phase H — Write and deliver
-
-| Task | | Status |
-|---|---|---|
-| H1 | Framework comparison table (no dependencies) | Remaining |
-| H2 | Report | Remaining |
-| H3 | README a stranger can follow | Remaining |
-| H4 | Presentation | Remaining |
-| H5 | Handover notes | Remaining |
+| A | Unblock | **Done** — A1–A5 |
+| B | Make it real | **Done** — B1–B5 |
+| C | The contribution | **Done** — C1–C6 |
+| D | Make it defensible | **Done** — D1–D5 |
+| E | The comparison | E1, E2 done; E3 in progress |
+| F | Data collection | F1–F4 remaining |
+| G | Analysis | G1–G5 remaining |
+| H | Write and deliver | H1–H5 remaining |
 
 ### Immediate next steps
 
-1. Bridge Sepolia ETH to zkSync Era Sepolia — <https://portal.zksync.io/bridge/?network=sepolia> (~15 min)
-2. Bridge Sepolia ETH to OP Sepolia — <https://app.optimism.io/bridge> (~15 min)
-3. Confirm with `python -m bench.check_funds --priority --record`
-4. Start B1/B2 — the keystone; nothing downstream exists until a real hash comes
-   back from a real node
+1. **E3** — resolve OP settlement across all rows, then run both rollups close
+   together in time with the L1 gas price recorded at each.
+2. **F2 and F3** — repetitions and the batch-size sweep. Start them early; they
+   cost waiting rather than work, and F2 is what turns settlement from n = 1
+   into a distribution.
+3. **F4** — read-only mainnet observation. Costs nothing and grounds every
+   testnet figure.
+4. **H1** — the framework comparison table. No code, no data, no funds, so it is
+   the task to work on whenever something else is blocked.
 
-H1 needs no code, no data and no funds, so it is the task to work on whenever
-something else is blocked.
+### Needs a human
+
+- Replace the `PLACEHOLDER` ETH rate in `bench/configs/pricing.yaml` with one
+  you actually looked up. Every dollar figure derives from it.
+- Fill in the `faucet:` provenance fields in `bench/configs/accounts.yaml` — the
+  report's experimental setup section needs them.
+- Decide on Polygon zkEVM Cardona: replace the stalled RPC, or drop the network.
+- An Etherscan API key, for F4. The V1 API is retired and V2 requires one.
 
 ## What this framework does not measure
 
@@ -224,6 +252,20 @@ something else is blocked.
   service other people depend on, and would mostly measure our own rate limits.
   Achieved throughput at a stated submission rate is reported instead.
 - **Proving time and cost.** Cited from published work, not measured — no GPU.
-- **Mainnet finality directly.** Testnets prove more often and use drastically
-  shortened challenge windows. Read-only mainnet observation (F4) grounds the
+- **Per-transaction data-availability size.** A blob costs 131,072 bytes whether
+  the rollup fills it or not, and a batch carries every user's transactions —
+  batch 21623 held 875, of which 109 were ours. So DA bytes per transaction is a
+  batch average that does not vary with workload, reported as
+  `da_bytes_per_tx_batch_avg` and flagged `da_workload_sensitive=False` rather
+  than dressed up as a per-workload measurement.
+- **Observed trustless finality on an optimistic rollup.** Measured from the
+  OptimismPortal itself, OP Sepolia's `proofMaturityDelaySeconds` is 604800 — a
+  full seven days, the same as mainnet. Testnets are widely assumed to shorten
+  their challenge windows; this one does not. Every `t3` on the optimistic side
+  is therefore a computed deadline marked `derived`, and no amount of waiting
+  would change that within the project.
+- **L1 cost on OP Stack.** The number of transactions sharing a batch is not
+  exposed without decoding the blob, so there is no denominator. Reported
+  unavailable rather than divided by a guess.
+- **Mainnet finality directly.** Read-only mainnet observation (F4) grounds the
   testnet figures against production behaviour.

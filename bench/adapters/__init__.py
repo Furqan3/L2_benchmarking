@@ -7,11 +7,13 @@ both a ZK and an optimistic rollup - be true rather than aspirational.
 """
 
 from bench.adapters.base import Adapter, Settlement, SettlementUnavailable
+from bench.adapters.optimism import OptimismAdapter
 from bench.adapters.zksync import ZkSyncAdapter
 
 #: Keyed by the 'family' field in networks.yaml.
 _BY_FAMILY: dict[str, Adapter] = {
     "zk": ZkSyncAdapter(),
+    "optimistic": OptimismAdapter(),
 }
 
 
@@ -35,6 +37,7 @@ __all__ = [
     "Adapter",
     "Settlement",
     "SettlementUnavailable",
+    "OptimismAdapter",
     "ZkSyncAdapter",
     "for_network",
 ]

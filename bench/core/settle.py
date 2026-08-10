@@ -52,6 +52,27 @@ def l1_timestamp(w3_l1: Web3, tx_hash: str) -> tuple[int, int]:
     return timestamp, block_number
 
 
+def _plausible(record: dict, timestamp: int, field: str) -> bool:
+    """Refuse a settlement timestamp that precedes the transaction itself.
+
+    A batch posted before our transaction was broadcast cannot contain it, so
+    such a value is not a slightly-wrong measurement - it is the wrong batch.
+
+    This is not hypothetical. Matching an OP Stack batch by scanning forward
+    from the L2 block's L1 origin found a posting nine seconds BEFORE t0,
+    because the L1 origin lags the L1 head by a sequencer window. The scan now
+    guards on time as well, and this check is the backstop: any future matching
+    heuristic that makes the same class of mistake fails here rather than
+    producing a negative latency that a reader has to notice by eye.
+    """
+    t0 = record.get("t0")
+    if t0 is None or timestamp >= t0:
+        return True
+    print(f"  refused {field} {timestamp} for {str(record.get('hash'))[:14]}...: "
+          f"{t0 - timestamp:.0f}s before t0 - wrong batch, not recorded")
+    return False
+
+
 def apply_settlement(
     record: dict,
     settlement: Settlement,
@@ -79,13 +100,23 @@ def apply_settlement(
     if settlement.execute_tx:
         record["l1_execute_tx"] = settlement.execute_tx
 
+    record["t2_kind"] = settlement.t2_kind
+
     if settlement.commit_tx and record.get("t2") is None:
         try:
-            record["t2"], record["l1_commit_block"] = l1_timestamp(
-                w3_l1, settlement.commit_tx
-            )
+            timestamp, block = l1_timestamp(w3_l1, settlement.commit_tx)
+            if _plausible(record, timestamp, "t2"):
+                record["t2"], record["l1_commit_block"] = timestamp, block
         except SettlementUnavailable:
             pass
+
+    # A derived t3 has no L1 transaction behind it - nothing happens when a
+    # challenge window closes - so it is taken straight from the adapter and
+    # flagged, never looked up and never presented as an observation.
+    if settlement.t3_derived_at is not None and record.get("t3") is None:
+        record["t3"] = settlement.t3_derived_at
+        record["t3_kind"] = settlement.t3_kind
+        record["t3_source"] = settlement.t3_source
 
     if settlement.prove_tx and record.get("t3") is None:
         try:
@@ -117,4 +148,11 @@ def outstanding(record: dict) -> bool:
     # the number of transactions sharing it, so a row without batch_tx_count
     # cannot be costed at all - and a row that has every timestamp still looks
     # finished to anything that only checks timestamps.
+    #
+    # Not demanded of rollups that cannot supply it. An OP Stack chain exposes
+    # no batch composition without decoding the blob, so requiring it there
+    # would leave every optimistic row outstanding for ever and make the
+    # resolve pass never finish.
+    if record.get("t2_kind") == "estimated":
+        return False
     return record.get("batch") is None or record.get("batch_tx_count") is None
