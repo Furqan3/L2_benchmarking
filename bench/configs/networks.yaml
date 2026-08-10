@@ -30,6 +30,19 @@ networks:
     explorer: https://sepolia.explorer.zksync.io
     settles_on: sepolia
     bridge: https://portal.zksync.io/bridge/?network=sepolia
+    # The L1 contract holding this rollup's batch state (task C1). Testnet
+    # only - mainnet differs. Obtained from the chain itself via
+    # zks_getMainContract, which is authoritative and cannot drift the way a
+    # copied address can.
+    #
+    # NOT the 'to' of the batch-posting transaction. That is the
+    # ValidatorTimelock below: batches are submitted through it, so it is what
+    # ethCommitTxHash points at, but it holds no batch state and every getter
+    # on it reverts. C2's fallback route must read BlockCommit and
+    # BlocksVerification logs from the diamond proxy, not from the timelock.
+    l1_contract: "0x9a6de0f62aa270a8bcb1e2610078650d539b1ef9"
+    l1_abi: zksync_hyperchain.json
+    l1_validator_timelock: "0xedf4B1C6AF6520bb76826525adef7e0e09Af2c8d"
     notes: >
       Primary ZK target. Exposes zks_getTransactionDetails, which returns the
       L1 commit and prove transaction hashes directly - the shortcut for C2.

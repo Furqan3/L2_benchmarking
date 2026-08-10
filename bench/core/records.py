@@ -30,8 +30,15 @@ from the end of the previous one silently inflates every trustless figure.
     t2            L1 block timestamp of the batch commit (C3)
     t3            L1 block timestamp of the proof, or a derived deadline (C4/E2)
     t3_kind       "observed" or "derived" - E2 requires these be distinguished
+    t3_source     which event t3 came from: "prove", "execute", or
+                  "challenge_window". C4 step 3 asks that proving and executing
+                  not be collapsed into one another where a rollup separates
+                  them, and that the report say which one was used.
     l1_commit_tx  the Ethereum transaction that posted the batch (C2)
     l1_prove_tx   the Ethereum transaction that proved it (C2)
+    l1_execute_tx the Ethereum transaction that executed it, later still
+    l1_commit_block  L1 block number for the commit - D2 costs from its receipt
+    l1_prove_block   L1 block number for the proof
     outcome       success | reverted | timeout | rejected | submitted (B5)
     detail        why, when the outcome is not success
     gas_limit     what we asked for
@@ -87,8 +94,14 @@ def new_record(**fields: Any) -> dict:
         "t2": None,
         "t3": None,
         "t3_kind": None,
+        "t3_source": None,
+        "batch": None,
+        "settle_status": None,
         "l1_commit_tx": None,
         "l1_prove_tx": None,
+        "l1_execute_tx": None,
+        "l1_commit_block": None,
+        "l1_prove_block": None,
         "outcome": None,
         "detail": None,
         "gas_limit": None,
@@ -96,10 +109,13 @@ def new_record(**fields: Any) -> dict:
         "gas_price_wei": None,
         "block": None,
     }
-    unknown = set(fields) - set(record)
-    if unknown:
-        raise KeyError(f"not in the record schema: {', '.join(sorted(unknown))}")
-    record.update(fields)
+    if fields:
+        unknown = set(fields) - set(record)
+        if unknown:
+            raise KeyError(
+                f"not in the record schema: {', '.join(sorted(unknown))}"
+            )
+        record.update(fields)
     return record
 
 
@@ -116,6 +132,20 @@ def append(path: Path, records: list[dict]) -> None:
             handle.write(json.dumps(record) + "\n")
 
 
+def normalise(row: dict) -> dict:
+    """One row with every current schema field present.
+
+    Rows written before a field existed would otherwise be missing it, and a
+    file whose rows have different keys is not a table - pandas would fill the
+    gaps with NaN and D1's export would have ragged columns. Unknown keys are
+    kept rather than dropped, so reading a file written by a newer version
+    never destroys data.
+    """
+    merged = new_record()
+    merged.update(row)
+    return merged
+
+
 def load(path: Path) -> list[dict]:
     """Every row in a file, tolerating a truncated final line.
 
@@ -130,7 +160,7 @@ def load(path: Path) -> list[dict]:
         if not line:
             continue
         try:
-            rows.append(json.loads(line))
+            rows.append(normalise(json.loads(line)))
         except json.JSONDecodeError:
             continue
     return rows

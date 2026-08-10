@@ -39,6 +39,10 @@ class Network:
     settles_on: str | None = None  # key of the L1 this rollup posts to
     bridge: str | None = None
     notes: str | None = None
+    # Where this rollup posts its batches on the L1, and the ABI committed for
+    # it (task C1). Two of the three finality timestamps are read from here.
+    l1_contract: str | None = None
+    l1_abi: str | None = None
 
     @property
     def is_l2(self) -> bool:
@@ -91,6 +95,8 @@ def load_networks() -> dict[str, Network]:
             settles_on=spec.get("settles_on"),
             bridge=spec.get("bridge"),
             notes=spec.get("notes"),
+            l1_contract=spec.get("l1_contract"),
+            l1_abi=spec.get("l1_abi"),
         )
     return out
 
