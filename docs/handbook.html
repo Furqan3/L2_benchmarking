@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>L2 Benchmark — Project Handbook</title>
+<style>
+  @page {
+    size: A4;
+    margin: 22mm 18mm 20mm 18mm;
+    @bottom-center {
+      content: counter(page);
+      font-family: Georgia, serif;
+      font-size: 8.5pt;
+      color: #8a8a8a;
+    }
+    @bottom-right {
+      content: "L2 Benchmark · Project 50081";
+      font-family: Georgia, serif;
+      font-size: 7.5pt;
+      color: #a8a8a8;
+    }
+  }
+  @page :first { @bottom-center { content: ""; } @bottom-right { content: ""; } }
+
+  html { font-size: 10.2pt; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    color: #1c1c1c;
+    line-height: 1.5;
+  }
+
+  h1 { font-size: 21pt; line-height: 1.15; margin: 0 0 6px 0; font-weight: normal; letter-spacing: -0.3px; }
+  h2 {
+    font-size: 13.5pt; font-weight: normal; margin: 26px 0 9px 0;
+    padding-bottom: 4px; border-bottom: 1.2px solid #1c1c1c;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 10.6pt; margin: 17px 0 5px 0; font-weight: bold;
+    page-break-after: avoid;
+  }
+  h4 {
+    font-size: 9.6pt; margin: 13px 0 4px 0; font-weight: bold;
+    font-family: "DejaVu Sans", Helvetica, sans-serif;
+    page-break-after: avoid;
+  }
+  p { margin: 0 0 8px 0; }
+  ul, ol { margin: 0 0 9px 0; padding-left: 17px; }
+  li { margin-bottom: 3px; }
+
+  .eyebrow {
+    font-family: "DejaVu Sans", Helvetica, sans-serif;
+    font-size: 7.5pt; letter-spacing: 2.4px; text-transform: uppercase;
+    color: #6b6b6b; margin-bottom: 22px;
+  }
+  .lede { font-size: 11.4pt; color: #3a3a3a; line-height: 1.45; margin-bottom: 26px; }
+
+  .meta { width: 100%; border-collapse: collapse; margin: 26px 0; font-size: 9pt; }
+  .meta td { padding: 5px 0; vertical-align: top; border-bottom: 0.5px solid #e2e2e2; }
+  .meta td:first-child {
+    width: 118px; color: #6b6b6b;
+    font-family: "DejaVu Sans", Helvetica, sans-serif; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 0.7px; padding-top: 7px;
+  }
+
+  table.grid { width: 100%; border-collapse: collapse; margin: 11px 0 14px 0; font-size: 8.6pt; }
+  table.grid th {
+    text-align: left; font-family: "DejaVu Sans", Helvetica, sans-serif;
+    font-size: 7.4pt; text-transform: uppercase; letter-spacing: 0.7px;
+    color: #6b6b6b; border-bottom: 1px solid #1c1c1c; padding: 5px 7px 4px 0; font-weight: normal;
+  }
+  table.grid td { padding: 5px 7px 5px 0; border-bottom: 0.5px solid #e8e8e8; vertical-align: top; }
+  table.grid td.num { text-align: right; font-family: "DejaVu Sans Mono", monospace; font-size: 8pt; }
+  table.grid tr { page-break-inside: avoid; }
+
+  code, .mono {
+    font-family: "DejaVu Sans Mono", "Courier New", monospace;
+    font-size: 8.2pt; background: #f4f4f2; padding: 0.5px 3px; border-radius: 2px;
+  }
+  pre {
+    font-family: "DejaVu Sans Mono", monospace; font-size: 7.8pt;
+    background: #f7f7f5; border-left: 2.5px solid #c8c8c4;
+    padding: 9px 11px; margin: 9px 0 12px 0; line-height: 1.42;
+    white-space: pre-wrap; page-break-inside: avoid;
+  }
+  pre.flow { font-size: 7.4pt; line-height: 1.35; background: #fbfbfa; }
+
+  .callout {
+    border: 0.8px solid #1c1c1c; padding: 10px 13px; margin: 13px 0;
+    page-break-inside: avoid;
+  }
+  .callout .label {
+    font-family: "DejaVu Sans", Helvetica, sans-serif; font-size: 7.4pt;
+    letter-spacing: 1.8px; text-transform: uppercase; margin-bottom: 5px; color: #1c1c1c;
+  }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout.soft { border: none; background: #f4f4f2; }
+
+  .file {
+    margin: 0 0 13px 0; padding: 0 0 11px 0;
+    border-bottom: 0.5px solid #e8e8e8; page-break-inside: avoid;
+  }
+  .file .path {
+    font-family: "DejaVu Sans Mono", monospace; font-size: 9pt;
+    font-weight: bold; color: #1c1c1c;
+  }
+  .file .tag {
+    font-family: "DejaVu Sans", Helvetica, sans-serif; font-size: 6.9pt;
+    letter-spacing: 0.9px; text-transform: uppercase; color: #6b6b6b;
+    border: 0.5px solid #c4c4c4; padding: 1px 5px; margin-left: 7px; border-radius: 2px;
+  }
+  .file .why { margin: 5px 0 0 0; }
+  .file .api {
+    font-family: "DejaVu Sans Mono", monospace; font-size: 7.6pt;
+    color: #5a5a5a; margin-top: 4px;
+  }
+
+  .done { color: #1a6b3c; font-weight: bold; }
+  .pending { color: #8a6a1a; }
+  .not { color: #999; }
+  .break { page-break-before: always; }
+  .tight { margin-bottom: 3px; }
+</style>
+</head>
+<body>
+
+<div class="eyebrow">Project Handbook · Work Completed</div>
+
+<h1>An Observational Benchmark for<br>Layer 2 Finality</h1>
+
+<p class="lede">What has been built, why each piece exists, how the parts fit
+together, and what every file in the repository is for.</p>
+
+<table class="meta">
+  <tr><td>Project</td><td>50081 — Enhancing Scalability and Interoperability in Decentralized Layer 2 Blockchain Networks</td></tr>
+  <tr><td>Track</td><td><strong>Scalability</strong> — benchmarking L2 approaches on throughput, latency and cost-efficiency</td></tr>
+  <tr><td>Programme</td><td>Mitacs Globalink 2026</td></tr>
+  <tr><td>Supervisor</td><td>Prof. Sara Rouhani, TCDT Lab</td></tr>
+  <tr><td>Intern</td><td>Ujala Kiran</td></tr>
+  <tr><td>Approach</td><td>Observational — measure public networks, host nothing</td></tr>
+  <tr><td>Status</td><td>24 of 38 tasks complete. Phases A–D done; minimum viable deliverable reached</td></tr>
+  <tr><td>Date</td><td>10 August 2026</td></tr>
+</table>
+
+<div class="callout">
+  <div class="label">What this document is</div>
+  <p>The implementation handbook says <em>what</em> to build, task by task. This
+  document records <em>what was actually built</em>, what was learned in the
+  process, and why the code looks the way it does. Where a measurement
+  contradicted an expectation, that is written down here rather than quietly
+  fixed — several of those contradictions are the most useful findings so far.</p>
+</div>
+
+<h2>1 · What the project measures</h2>
+
+<p>The framework submits a transaction to a Layer 2 network operated by somebody
+else, then determines three different moments at which that transaction could
+reasonably be called <em>final</em> — and what it cost to reach each one.</p>
+
+<table class="grid">
+  <tr><th style="width:88px">Level</th><th style="width:190px">Final when</th><th>Where the timestamp comes from</th></tr>
+  <tr>
+    <td><strong>t₁</strong> Full trust</td>
+    <td>The L2 sequencer accepts it</td>
+    <td>The L2's own RPC — a transaction receipt appears</td>
+  </tr>
+  <tr>
+    <td><strong>t₂</strong> Partial trust</td>
+    <td>Its batch is posted to Ethereum</td>
+    <td>An Ethereum L1 transaction sent by the rollup operator</td>
+  </tr>
+  <tr>
+    <td><strong>t₃</strong> Trustless</td>
+    <td>Its batch is proven, or its challenge window closes</td>
+    <td>A second Ethereum L1 transaction, later</td>
+  </tr>
+</table>
+
+<p><strong>Two of the three timestamps come from Ethereum, not from the
+rollup.</strong> That single observation is why the project needs no hosted
+infrastructure: the evidence for partial-trust and trustless finality is public
+on the L1, sent by the rollup operator, and readable by anyone. It is also what
+makes every result independently checkable — each row of output carries the
+Ethereum transaction hashes a reviewer can open for themselves.</p>
+
+<h3>Why three levels rather than one</h3>
+
+<p>Published L2 benchmarks report "latency" as a single number, which almost
+always means t₁ — the sequencer said yes. That number is excellent for every
+rollup and says nothing about the security assumption behind it. Separating the
+three levels is what allows the comparison this project exists to make: a ZK
+rollup and an optimistic rollup look similar at full trust and behave very
+differently once you stop trusting the sequencer.</p>
+
+<h2>2 · Where the project stands</h2>
+
+<table class="grid">
+  <tr><th style="width:52px">Phase</th><th style="width:150px">Purpose</th><th style="width:62px">Tasks</th><th>Status</th></tr>
+  <tr><td>A</td><td>Unblock</td><td>A1–A5</td><td class="done">Complete</td></tr>
+  <tr><td>B</td><td>Make it real</td><td>B1–B5</td><td class="done">Complete</td></tr>
+  <tr><td>C</td><td>The contribution</td><td>C1–C6</td><td class="done">Complete</td></tr>
+  <tr><td>D</td><td>Make it defensible</td><td>D1–D5</td><td class="done">Complete — minimum viable deliverable</td></tr>
+  <tr><td>E</td><td>The comparison</td><td>E1–E3</td><td class="pending">Not started — OP Sepolia funded and ready</td></tr>
+  <tr><td>F</td><td>Data collection</td><td>F1–F4</td><td class="not">Not started</td></tr>
+  <tr><td>G</td><td>Analysis</td><td>G1–G5</td><td class="not">Not started</td></tr>
+  <tr><td>H</td><td>Write and deliver</td><td>H1–H5</td><td class="not">Not started</td></tr>
+</table>
+
+<h3>Results obtained so far</h3>
+
+<p>zkSync Era Sepolia, 109 transactions, all successful, all settled to Ethereum
+Sepolia in batch 21623.</p>
+
+<table class="grid">
+  <tr><th style="width:130px">Level</th><th class="num" style="width:70px">Median</th><th class="num" style="width:70px">p95</th><th class="num" style="width:70px">Min</th><th class="num" style="width:70px">Max</th></tr>
+  <tr><td>Full trust (t₁)</td><td class="num">18.04 s</td><td class="num">19.19 s</td><td class="num">0.60 s</td><td class="num">20.16 s</td></tr>
+  <tr><td>Partial trust (t₂)</td><td class="num">25.47 m</td><td class="num">28.30 m</td><td class="num">19.48 m</td><td class="num">30.42 m</td></tr>
+  <tr><td>Trustless (t₃)</td><td class="num">36.67 m</td><td class="num">39.50 m</td><td class="num">30.68 m</td><td class="num">41.62 m</td></tr>
+</table>
+
+<p>Broken down by stage, the medians are: 0.30 minutes for the sequencer to
+accept, <strong>25.17 minutes waiting for the batch to be posted</strong>, and
+11.20 minutes from commit to proof. The dominant cost of trustless finality on
+this rollup is not proving — it is waiting for a batch to seal.</p>
+
+<p>Cost per transaction: <strong>$0.00285965</strong> at an assumed ETH price of
+$3,800, derived from the actual L1 receipts (commit 0.000495 ETH, proof 0.000164
+ETH) divided by the 875 transactions sharing the batch.</p>
+
+<div class="callout">
+  <div class="label">The caveat that governs every number above</div>
+  <p>109 transactions, but <strong>one batch</strong>. One commit transaction,
+  one proof transaction, submitted inside a single eleven-minute window. The
+  tell is that the t₂ and t₃ spreads are identical — 10.95 minutes each —
+  because t₂ and t₃ are the same two constants for all 109 rows and the entire
+  spread comes from our own submission times differing.</p>
+  <p>Settlement itself therefore has <strong>n = 1</strong>. These medians
+  demonstrate that the pipeline works end to end; they are not yet a
+  characterisation of the network. Task F2 — five repetitions, at least an hour
+  apart — is what turns them into one.</p>
+</div>
+
+<h2 class="break">3 · How the system flows</h2>
+
+<p>The single most important structural decision is that submission and
+resolution are <strong>two separate programs</strong>. Trustless finality can
+take an hour. A program that waits synchronously ties up the machine, dies when
+the laptop sleeps, and loses everything it had collected.</p>
+
+<pre class="flow">
+  ┌─ SUBMIT PASS ──────────────────────────────── runs in minutes, then exits ─┐
+  │                                                                            │
+  │   workloads.yaml ──> build tx ──> assign nonces ──> sign ──> BROADCAST     │
+  │   networks.yaml       (ABI            base+i                    │          │
+  │   .env (key)          encoder)                                  │          │
+  │                                                            t₀ captured     │
+  │                                                          immediately       │
+  │                                                          before send       │
+  │                                                                 │          │
+  │                          poll receipts round-robin  <───────────┘          │
+  │                                    │                                       │
+  │                              t₁ + gas used + outcome                       │
+  │                                    │                                       │
+  └────────────────────────────────────┼───────────────────────────────────────┘
+                                       v
+                        bench/results/<run_id>.jsonl
+                        one JSON object per line, appended
+                                       │
+  ┌─ RESOLVE PASS ────────────────────┼──── runs later, repeatedly, safe to kill ┐
+  │                                    v                                          │
+  │   read rows ──> which lack t₂ or t₃? ──> adapter.settlement(L2 hash)          │
+  │                                                     │                         │
+  │                                    L2 receipt ──> l1BatchNumber               │
+  │                                                     │                         │
+  │                                          zks_getL1BatchDetails                │
+  │                                                     │                         │
+  │                                    commitTxHash / proveTxHash / txCount       │
+  │                                                     │                         │
+  │                        ETHEREUM L1: get_transaction ──> get_block             │
+  │                                                     │                         │
+  │                                          block timestamp = t₂ , t₃            │
+  │                                                     │                         │
+  │                                    rewrite file (temp + atomic move)          │
+  └───────────────────────────────────────────────────────────────────────────────┘
+                                       │
+                                       v
+  ┌─ EXPORT ─────────────────────────────────────────────────────────────────────┐
+  │   raw_transactions.csv   one row per tx, absolute timestamps, both L1 hashes │
+  │   summary.csv            derived statistics, never a replacement for raw     │
+  │   assumptions.txt        ETH rate, gas prices, declared limitations          │
+  └──────────────────────────────────────────────────────────────────────────────┘
+</pre>
+
+<h3>Why this shape</h3>
+
+<ul>
+  <li><strong>t₀ is captured immediately before the broadcast</strong>, after
+  signing and gas estimation. Anything expensive between the two would be
+  silently attributed to the network.</li>
+  <li><strong>The file is the state.</strong> The resolve pass recomputes what is
+  outstanding from disk on every pass and holds nothing between passes, so it can
+  be interrupted at any point and lose nothing.</li>
+  <li><strong>JSON Lines, not a JSON array.</strong> An interrupted append leaves
+  a readable file; a half-written array does not.</li>
+  <li><strong>Only absolute timestamps are stored.</strong> Latencies are computed
+  at export time. An arithmetic mistake becomes a re-export rather than a
+  re-run of the experiment.</li>
+</ul>
+
+<h2>4 · Repository layout</h2>
+
+<pre>
+bench/
+    core/          submit, resolve, metrics — network-independent
+    adapters/      one file per rollup — the only per-network code
+    configs/       one YAML per concern; a run is described entirely by these
+    abis/          committed contract ABIs
+    contracts/     the workload token and its vendored dependencies
+    results/       gitignored JSONL output
+    export/        gitignored CSV deliverables
+docs/              this handbook and its build script
+</pre>
+
+<p>The separation that matters is <code>core/</code> against
+<code>adapters/</code>. Everything in <code>core/</code> works in terms of a
+<code>Settlement</code> record and never asks which rollup it is talking to.
+Adding a second architecture means adding one file to <code>adapters/</code> and
+changing nothing else — which is what makes the ZK-versus-optimistic comparison
+achievable rather than aspirational.</p>
+
+<h2>5 · Every file, and what it is for</h2>
+
+<h3>Entry points — the commands you actually run</h3>
+
+<div class="file">
+  <div><span class="path">bench/create_wallet.py</span><span class="tag">A2</span></div>
+  <p class="why">Generates the single test account used across every network and
+  writes the private key to <code>.env</code>, the address to committed config.
+  One account everywhere keeps records simple, and addresses are compatible
+  across all EVM chains.</p>
+  <div class="api">main()</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/check_funds.py</span><span class="tag">A3 · A4</span></div>
+  <p class="why">Answers "where do I actually have money" without opening a wallet,
+  and doubles as the endpoint verification A4 requires. Reports chain ID
+  mismatches and — importantly — <strong>stalled endpoints</strong>: an RPC that
+  answers correctly while serving state frozen weeks in the past. Records
+  balances and faucet provenance into <code>accounts.yaml</code> for the report's
+  experimental setup.</p>
+  <div class="api">probe · render · next_actions · print_faucets · record</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/send_one.py</span><span class="tag">A5</span></div>
+  <p class="why">A deliberately unabstracted script that sends one transaction and
+  times it. It exists so that when the framework misbehaves later, there is a
+  known-good reference proving that keys, funds, endpoint and chain ID all work
+  together. <code>--dry-run</code> signs locally and needs no funds at all.</p>
+  <div class="api">build · wait_for_receipt · main</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/deploy_token.py</span><span class="tag">B1</span></div>
+  <p class="why">Compiles <code>BenchToken.sol</code> with a pinned solc and
+  deploys it, recording the address into <code>workloads.yaml</code> by a
+  targeted line edit that preserves the file's comments.
+  <code>--dry-run</code> asks the node whether it will accept the bytecode at
+  all, which is how the question "does this rollup need its own compiler" gets
+  answered by measurement instead of assumption.</p>
+  <div class="api">compile_token · record_address · main</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/check_workloads.py</span><span class="tag">B1 done-when</span></div>
+  <p class="why">Builds every workload against a live node and asks for a gas
+  estimate without broadcasting. Estimation is a real simulation against real
+  state, so it catches a corrupt selector, a wrong token address and an unfunded
+  account — which is why it is the acceptance test rather than a local encoding
+  check.</p>
+  <div class="api">describe · check · run_network · main</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/submit_run.py</span><span class="tag">B2 · B3 · B4 · B5</span></div>
+  <p class="why">The submit pass. Builds a batch of one workload, numbers it
+  consecutively from a single fetched nonce, broadcasts in index order, polls
+  every receipt round-robin, and appends one JSON object per transaction. Exits
+  as soon as t₁ is known — it never waits for settlement.</p>
+  <div class="api">default_run_id · main</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/resolve_run.py</span><span class="tag">C2–C6</span></div>
+  <p class="why">The resolve pass. Reads run files, finds rows still missing t₂ or
+  t₃, asks the rollup where they settled, and writes the files back. Safe to run
+  repeatedly and safe to interrupt. <code>--watch N</code> repeats every N
+  seconds and stops itself once nothing is outstanding.</p>
+  <div class="api">resolve_file · one_pass · main</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/export.py</span><span class="tag">D1 · D2 · D3 · D4</span></div>
+  <p class="why">Produces the three deliverable files. Computes all latencies here
+  from absolute timestamps, fetches L1 costs once per batch rather than once per
+  transaction, and writes an assumptions block stating the ETH rate, its source,
+  and every declared limitation. <code>--eth-usd</code> overrides the configured
+  rate, which is D2's acceptance test.</p>
+  <div class="api">latencies · write_raw · batch_costs · summarise_group · main</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/check_config.py</span><span class="tag">D5 done-when</span></div>
+  <p class="why">Finds configuration keys that nothing reads. A setting that is
+  parsed and then ignored is the worst class of benchmark bug: you change it, the
+  run completes, the number is unchanged, and nothing tells you. It found three
+  such keys on first run.</p>
+  <div class="api">schema_keys · main</div>
+</div>
+
+<h3>Core — network-independent machinery</h3>
+
+<div class="file">
+  <div><span class="path">bench/core/wallet.py</span><span class="tag">A2</span></div>
+  <p class="why">Loads the private key from the environment and confirms it derives
+  the address recorded in committed config. A mismatch means <code>.env</code> and
+  the config describe different accounts, which would make every recorded result
+  untraceable.</p>
+  <div class="api">load_env · load_account · configured_address · account_created · check_address</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/core/networks.py</span><span class="tag">A3 · A4 · C1</span></div>
+  <p class="why">Every endpoint, chain ID, explorer URL and L1 contract address,
+  loaded from YAML and never inline in code, so a run is described entirely by
+  committed config. <code>connect_verified</code> refuses to proceed when an
+  endpoint reports a different chain than the config claims — an endpoint quietly
+  pointing at the wrong chain produces plausible results describing the wrong
+  system.</p>
+  <div class="api">Network · load_networks · funding_priority · connect · connect_verified</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/core/workloads.py</span><span class="tag">B1</span></div>
+  <p class="why">Turns a workload definition into a transaction dict. Enforces the
+  rule that <strong>no selector and no calldata is ever written by hand</strong>:
+  selectors are derived from the committed ABI and arguments go through the ABI
+  encoder. Gas is deliberately not set here, so that an estimation failure is
+  reported as an estimation failure rather than becoming a hardcoded limit.</p>
+  <div class="api">Workload · load_workloads · recipient · token_address · selector · signature · build</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/core/submit.py</span><span class="tag">B2 · B3 · B4 · B5</span></div>
+  <p class="why">Signing, broadcasting, nonce assignment, receipt polling and
+  outcome classification. Captures t₀ immediately before the broadcast. Raises on
+  submission failure so the caller can record it with <code>hash</code> left
+  null — <strong>a fabricated hash is the single most damaging thing that can be
+  done to a benchmark</strong>, because every downstream measurement then looks
+  plausible and means nothing.</p>
+  <div class="api">to_hex · estimate_gas · assign_nonces · verify_nonce_advance · submit ·
+  rejected_record · resolve_t1_batch · annotate_block_times · summarise · group_failures</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/core/records.py</span><span class="tag">B2 · C5 · C6 · D1</span></div>
+  <p class="why">The row schema and the JSON Lines file format. Defines the
+  outcome vocabulary — success, reverted, timeout, rejected — and normalises rows
+  on load so a file written before a field existed still reads as a rectangular
+  table. Writes via a temporary file and an atomic move, so an interrupted pass
+  cannot leave a half-written run file.</p>
+  <div class="api">Outcome · new_record · run_path · append · normalise · load · rewrite · iter_runs</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/core/settle.py</span><span class="tag">C2 · C3 · C4 · C5</span></div>
+  <p class="why">Turns L1 settlement hashes into timestamps: fetch the Ethereum
+  transaction, read its block number, fetch that block, take its timestamp.
+  Caches per L1 transaction, because a batch holds many of our rows and
+  re-fetching each block once per row multiplies the request count for no new
+  information. <code>outstanding()</code> decides what work remains.</p>
+  <div class="api">l1_timestamp · apply_settlement · outstanding</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/core/costs.py</span><span class="tag">D2 · D3</span></div>
+  <p class="why">Cost and data-availability size from L1 receipts —
+  <code>gasUsed × effectiveGasPrice</code>, never a constant and never an
+  estimate. Distinguishes blob-carrying transactions (type 3, priced at 131,072
+  bytes per blob) from calldata postings (16 gas per non-zero byte). Bytes and
+  cost travel as separate fields because the byte count is a fact about the
+  rollup while the cost depends on our price assumptions.</p>
+  <div class="api">L1Cost · l1_cost · pricing · to_usd</div>
+</div>
+
+<h3>Adapters — the only per-rollup code</h3>
+
+<div class="file">
+  <div><span class="path">bench/adapters/base.py</span><span class="tag">C2 · E1</span></div>
+  <p class="why">Defines <code>Settlement</code>, the one shape of answer every
+  architecture returns, so the resolve pass never branches on which rollup it is
+  talking to. Carries <code>t3_kind</code> — observed or derived — because a ZK
+  rollup <em>witnesses</em> a proof while an optimistic rollup <em>computes</em> a
+  deadline, and presenting the second as the first would be the most misleading
+  thing in the study.</p>
+  <div class="api">Settlement · Adapter · SettlementUnavailable · OBSERVED · DERIVED</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/adapters/zksync.py</span><span class="tag">C2</span></div>
+  <p class="why">Resolves settlement via the L2 receipt's batch number and
+  <code>zks_getL1BatchDetails</code>, caching per batch. Also yields the batch's
+  own transaction count, which is the denominator the cost model needs.</p>
+  <div class="api">ZkSyncAdapter · batch_details · settlement</div>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/adapters/__init__.py</span><span class="tag">C2 · E1</span></div>
+  <p class="why">Maps a network's <code>family</code> to its adapter. Raises rather
+  than returning a do-nothing default, because a rollup with no adapter would
+  otherwise produce rows with no t₂ and no t₃ that look exactly like rows whose
+  settlement has not happened yet.</p>
+  <div class="api">for_network</div>
+</div>
+
+<h3>Configuration — a run is described entirely by these</h3>
+
+<div class="file">
+  <div><span class="path">bench/configs/networks.yaml</span></div>
+  <p class="why">Five chains: one L1 and four L2s. Endpoints, expected chain IDs,
+  explorers, bridge URLs, faucet tiers, funding priority, and the L1 contract
+  addresses two of the three timestamps are read from. Endpoints can be
+  overridden per network from the environment
+  (<code>BENCH_RPC_&lt;KEY&gt;</code>) to swap a public endpoint for a paid one.</p>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/configs/workloads.yaml</span></div>
+  <p class="why">Two workloads — a native transfer and an ERC-20 transfer — plus
+  the fixed recipient and the deployed token address per network. Contains no
+  selector and no calldata: those are derived from the ABI at runtime.</p>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/configs/accounts.yaml</span></div>
+  <p class="why">The test account's address, when it was created, and — recorded
+  as it happens rather than remembered in Week 7 — which faucet or bridge funded
+  each network. This is the report's experimental-setup section in raw form.</p>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/configs/pricing.yaml</span></div>
+  <p class="why">The ETH/USD rate, when it was taken, and from where. Read only at
+  analysis time, never at collection time, so a wrong rate is a one-line fix and
+  a re-export rather than a re-run. A dollar figure without its assumptions
+  cannot be checked by anyone.</p>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/abis/erc20.json · zksync_hyperchain.json</span></div>
+  <p class="why">Committed rather than fetched at runtime, so results do not stop
+  being reproducible because a third-party API is down or has changed its terms.
+  The zkSync ABI carries the <code>BlockCommit</code> and
+  <code>BlocksVerification</code> events the fallback route needs, and the batch
+  counters mainnet observation will use.</p>
+</div>
+
+<div class="file">
+  <div><span class="path">bench/contracts/BenchToken.sol</span></div>
+  <p class="why">The plainest possible OpenZeppelin ERC-20: no hooks, no pausing,
+  no permit. The study measures what it costs a rollup to settle an ordinary
+  token transfer, so anything unusual in this contract would appear in the gas
+  and DA figures as though it were a property of the rollup. OpenZeppelin
+  sources are vendored at a pinned 5.0.2 alongside it.</p>
+</div>
+
+<h2 class="break">6 · What was learned by measuring</h2>
+
+<p>Each of these contradicted a reasonable expectation. They are recorded because
+they are the findings most likely to matter to somebody repeating this work.</p>
+
+<h4>The per-transaction settlement endpoint lags the per-batch one</h4>
+<p>The obvious route to settlement is <code>zks_getTransactionDetails</code>,
+which returns commit, prove and execute hashes for an L2 transaction. For batch
+21623 it returned <code>ethProveTxHash: null</code> while
+<code>zks_getL1BatchDetails</code> for that same batch already carried a proof
+hash timestamped seven minutes after the commit. The transaction view catches up
+eventually, but any single pass over it <strong>systematically undercounts
+trustless finality</strong>, and nothing about the null value signals that it is
+stale rather than genuinely pending. Settlement is now read per batch.</p>
+
+<h4>The batch-posting transaction's recipient is not the rollup's contract</h4>
+<p>The address a commit transaction is sent to
+(<code>0xedf4B1C6…</code>) is the ValidatorTimelock — batches are submitted
+<em>through</em> it, and every state getter on it reverts. The contract holding
+batch state is a different address (<code>0x9a6de0f6…</code>), obtained from the
+chain itself via <code>zks_getMainContract</code>. A fallback route that queried
+logs on the timelock would find nothing and look like a broken query rather than
+a wrong address.</p>
+
+<h4>zkSync reverts on transfers to low addresses</h4>
+<p>The conventional burn address <code>0x…dEaD</code> is the integer 57,005,
+which falls inside the range zkSync reserves for system contracts. Transfers to
+it revert with a bare <code>execution reverted</code> and no reason. It estimates
+fine on Sepolia and fails only on the rollup — precisely the kind of thing that
+surfaces as an inexplicable Phase B failure. The recipient is now a
+deterministically derived address outside that range.</p>
+
+<h4>Gas estimates are not cost figures</h4>
+<p>On zkSync, the token deployment estimated 5,386,132 gas and used 590,512 — a
+ninefold overshoot. A transfer estimated 224,386 and used 79,259. On OP Sepolia
+the same deployment estimated 555,635 and used 550,102, which is accurate. Costs
+must come from receipts; an estimate-derived cost on zkSync would not be wrong
+by a little.</p>
+
+<h4>Batch size drives full-trust latency</h4>
+<p>Median t₁ was 0.61 s for a single transaction, 1.85 s for five, and 18.11 s for
+fifty. The first reading was that this must be an artefact of the polling
+interval — halving the poll cap moved the figure from 18.63 s to 17.51 s, which
+disproved it. It is the sequencer working through a queue of consecutive nonces
+from one account, and it is the effect the batch-size sweep exists to
+characterise.</p>
+
+<h4>Per-transaction data-availability size is not measurable here</h4>
+<p>A blob costs 131,072 bytes whether the rollup fills it or not, and batch 21623
+carried 875 transactions of which 766 were not ours. So per-transaction DA bytes
+is a batch average identical across workloads, and the acceptance test for that
+task — DA bytes differing between a native and an ERC-20 batch — is
+<strong>not reachable on this rollup at this scale</strong>. The column is named
+<code>da_bytes_per_tx_batch_avg</code>, flagged
+<code>da_workload_sensitive=False</code>, and the limitation is stated in the
+export rather than hidden by a plausible-looking number. The workload difference
+is real and appears in L2 gas, where zkSync prices pubdata: 82,995 for a native
+transfer against 121,916 for an ERC-20 transfer.</p>
+
+<h4>Full-trust latency depends on what you mean by it</h4>
+<p>Measured t₁ exceeds the L2 block's own timestamp by a median of 17.95 s for
+batched submissions. The sequencer timestamps the block near submission but does
+not expose the receipt for some seconds afterwards. So t₁ as measured means "when
+the sequencer would tell us", not "when the sequencer says it happened" — an
+upper bound. Both are recorded so the gap is visible.</p>
+
+<h2>7 · Rules the code enforces</h2>
+
+<ul>
+  <li><strong>Never invent a number.</strong> A field that cannot be measured is
+  reported as unavailable. A submission that fails produces a row with a null
+  hash, never a placeholder.</li>
+  <li><strong>Never publish a cost without its assumptions.</strong> The ETH rate,
+  its source, and the L1 gas price appear beside every figure.</li>
+  <li><strong>Never report a latency without its finality level.</strong></li>
+  <li><strong>Raw per-transaction data is primary.</strong> Summaries are derived
+  and regenerable; they never replace the rows.</li>
+  <li><strong>Absolute timestamps only.</strong> No duration is stored at
+  collection time.</li>
+  <li><strong>Observed and derived values are distinguished</strong>, because a
+  computed challenge-window deadline is not a witnessed event.</li>
+  <li><strong>Do not stress-test a shared public network.</strong> Achieved
+  throughput is reported; no peak figure is claimed.</li>
+</ul>
+
+<h2>8 · What comes next</h2>
+
+<table class="grid">
+  <tr><th style="width:60px">Tasks</th><th style="width:170px">Work</th><th>Why it matters now</th></tr>
+  <tr><td>E1–E3</td><td>Optimistic rollup adapter and cross-architecture run</td>
+      <td>The project plan names Optimistic Rollups explicitly, and the
+      ZK-versus-optimistic inversion is the finding none of the surveyed papers
+      produced. OP Sepolia is funded with its token deployed.</td></tr>
+  <tr><td>F2 · F3</td><td>Repetitions and batch-size sweep</td>
+      <td>Turns settlement from n = 1 into a distribution. Should start
+      immediately and run in the background — it costs waiting, not work.</td></tr>
+  <tr><td>F4</td><td>Read-only mainnet observation</td>
+      <td>Testnet proof cadence is not mainnet's. Costs nothing and grounds every
+      testnet figure.</td></tr>
+  <tr><td>G1–G5</td><td>Analysis and threats to validity</td>
+      <td>Several limitations are already documented here and belong in that
+      section verbatim.</td></tr>
+  <tr><td>H1</td><td>Framework comparison table</td>
+      <td>No code, no data, no funds. Four of its six source papers are already
+      in the project directory.</td></tr>
+</table>
+
+<h3>Outstanding decisions that need the supervisor</h3>
+
+<p>The project plan refers to a <em>"modular research testbed already designed and
+developed in our laboratory for ZK rollup technology"</em>. This implementation is
+deliberately observational and hosts nothing. Those are different approaches, and
+the difference has a concrete consequence: the plan asks for evaluation
+<em>"under varying load conditions"</em>, but a shared public sequencer must not
+be saturated — doing so would degrade a service other people depend on and would
+measure our own rate limits rather than the system. On public testnets the only
+load variable under our control is batch size. A lab testbed would remove that
+constraint. This is worth settling early rather than in Week 10.</p>
+
+</body>
+</html>
