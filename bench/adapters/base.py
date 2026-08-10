@@ -42,6 +42,11 @@ class Settlement:
     prove_tx: str | None = None     # proved it -> t3 for a ZK rollup
     execute_tx: str | None = None   # applied it to L1 state, later still
     batch: int | None = None        # the rollup's own batch number
+    #: How many transactions shared this batch, ours and everyone else's. D2
+    #: divides the batch's L1 cost by this to get a per-transaction share, and
+    #: using only our own count would overstate each transaction's cost by
+    #: however much of the batch belonged to other users.
+    batch_tx_count: int | None = None
     status: str | None = None       # the rollup's word for its stage
     t3_kind: str = OBSERVED
     t3_source: str | None = None    # which event t3 was taken from

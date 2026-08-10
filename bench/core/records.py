@@ -96,6 +96,7 @@ def new_record(**fields: Any) -> dict:
         "t3_kind": None,
         "t3_source": None,
         "batch": None,
+        "batch_tx_count": None,
         "settle_status": None,
         "l1_commit_tx": None,
         "l1_prove_tx": None,

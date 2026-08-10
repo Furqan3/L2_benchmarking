@@ -54,6 +54,15 @@ def configured_address(path: Path = ACCOUNTS_CONFIG) -> str | None:
     return (cfg.get("account") or {}).get("address")
 
 
+def account_created(path: Path = ACCOUNTS_CONFIG) -> str | None:
+    """When this test account was generated, for the experimental setup."""
+    if not path.exists():
+        return None
+    cfg = yaml.safe_load(path.read_text()) or {}
+    value = (cfg.get("account") or {}).get("created")
+    return str(value) if value else None
+
+
 def check_address() -> str:
     """Load the key and confirm it derives the address we committed.
 

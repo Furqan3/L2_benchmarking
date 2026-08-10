@@ -1,0 +1,32 @@
+# Price assumptions for cost figures (task D2).
+#
+#     A DOLLAR FIGURE WITHOUT ITS ASSUMPTIONS IS UNFALSIFIABLE
+#
+# Two people running this experiment a week apart get different costs purely
+# from gas and ETH price movement. What makes the numbers comparable is not
+# picking the "right" rate - there isn't one - but recording which rate was
+# used, when it was taken, and from where. Every dollar figure the framework
+# prints carries the gas price and this rate beside it.
+#
+# This file is read at analysis time, never at collection time. Raw rows store
+# gas and wei; dollars are derived. That means a wrong rate here is a one-line
+# fix and a re-run of the export, not a re-run of the experiment.
+#
+# Changing eth_usd must change every reported cost. That is D2's done-when.
+
+eth_usd:
+  rate: 3800.0
+  recorded_at: 2026-08-10T00:00:00Z
+  source: >
+    PLACEHOLDER - replace with a rate you actually looked up, and say where.
+    A round number is a giveaway that nobody checked. Any public spot price is
+    fine as long as this field names it and records the time it was read.
+
+# The testnet ETH used here is worth nothing, so every dollar figure in this
+# study is what the same batch would have cost on mainnet at mainnet gas
+# prices - which these runs do not observe. Task F4 exists to measure real
+# mainnet gas so the testnet figures can be placed beside it honestly.
+notes: >
+  Costs computed from testnet L1 gas priced at a mainnet ETH rate are an
+  illustration, not a measurement of what anyone paid. Say so wherever these
+  figures appear.

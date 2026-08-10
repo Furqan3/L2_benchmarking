@@ -43,6 +43,10 @@ class Network:
     # it (task C1). Two of the three finality timestamps are read from here.
     l1_contract: str | None = None
     l1_abi: str | None = None
+    #: Where batches are submitted *through*. Not the state-holding contract:
+    #: getters on it revert. C2's fallback route needs both to tell a commit
+    #: transaction's recipient from the contract whose logs carry the events.
+    l1_validator_timelock: str | None = None
 
     @property
     def is_l2(self) -> bool:
@@ -97,6 +101,7 @@ def load_networks() -> dict[str, Network]:
             notes=spec.get("notes"),
             l1_contract=spec.get("l1_contract"),
             l1_abi=spec.get("l1_abi"),
+            l1_validator_timelock=spec.get("l1_validator_timelock"),
         )
     return out
 

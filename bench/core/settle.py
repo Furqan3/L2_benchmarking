@@ -66,6 +66,8 @@ def apply_settlement(
     record["settle_status"] = settlement.status
     if settlement.batch is not None:
         record["batch"] = settlement.batch
+    if settlement.batch_tx_count is not None:
+        record["batch_tx_count"] = settlement.batch_tx_count
 
     # The L1 hashes go in the output whether or not their timestamps resolve.
     # They are what make the result checkable by someone who does not trust us
@@ -109,4 +111,10 @@ def outstanding(record: dict) -> bool:
         return False
     if record.get("outcome") in ("rejected", "timeout"):
         return False
-    return record.get("t2") is None or record.get("t3") is None
+    if record.get("t2") is None or record.get("t3") is None:
+        return True
+    # Settled, but missing the batch identity. D2 divides a batch's L1 cost by
+    # the number of transactions sharing it, so a row without batch_tx_count
+    # cannot be costed at all - and a row that has every timestamp still looks
+    # finished to anything that only checks timestamps.
+    return record.get("batch") is None or record.get("batch_tx_count") is None

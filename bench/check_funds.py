@@ -28,7 +28,7 @@ from bench.core.networks import (
     funding_priority,
     load_networks,
 )
-from bench.core.wallet import ACCOUNTS_CONFIG, check_address
+from bench.core.wallet import ACCOUNTS_CONFIG, account_created, check_address
 
 # Enough to bridge and run a few hundred transactions, with headroom.
 #
@@ -108,7 +108,8 @@ def probe(network: Network, address: str) -> dict:
 
 
 def render(results: list[dict], address: str) -> None:
-    print(f"\naccount  {address}\n")
+    created = account_created()
+    print(f"\naccount  {address}" + (f"   created {created}" if created else "") + "\n")
     head = f"{'network':<26}{'chain':>11}{'block':>15}{'balance (ETH)':>17}  status"
     print(head)
     print("-" * (len(head) + 6))
@@ -188,6 +189,7 @@ def print_faucets() -> None:
         for e in entries:
             print(f"    {e['name']}")
             print(f"      {e['url']}")
+            print(f"      pays:     {e.get('pays', 'unknown')}")
             print(f"      requires: {e.get('requires', 'unknown')}")
     print()
 
