@@ -28,15 +28,22 @@ read-only observation of both chains' mainnets.
 | Level | zkSync Era Sepolia | kind | OP Sepolia | kind | ratio |
 |---|---|---|---|---|---|
 | Full trust (`t1`) | 18.90 s | observed | 18.89 s | observed | **indistinguishable** |
-| Partial trust (`t2`) | 25.49 min | observed | 1.90 min | *estimated* | OP **13.4x faster** |
+| Partial trust (`t2`) | 25.49 min | observed | 0.58 min | *estimated* | OP **44x faster** |
 | Trustless (`t3`) | 36.69 min | observed | **7.01 days** | *derived* | OP **275x slower** |
 
-Native transfer, medians over 265 and 212 successful transactions respectively.
+Native transfer, medians over 265 and 212 successful transactions. **Snapshot as
+of 15:50 PKT on 10 Aug 2026** — collection runs hourly and these move as it
+accumulates. Regenerate with `python -m bench.export` and
+`python -m bench.analysis.figures`.
 
 At full trust the two architectures are **indistinguishable** — 18.90 s against
 18.89 s. OP then pulls sharply ahead at partial trust, because it posts batches
 to L1 every few minutes rather than every half hour. And then it loses by more
 than two orders of magnitude at trustless finality.
+
+The partial-trust gap has *widened* as the sample grew — OP's median fell from
+114 s to 34.78 s as n went from 101 to 212 — which is the direction that
+matters.
 
 **That crossover is the result this project exists to produce**, and it is
 precisely what a single-number latency benchmark cannot show: whichever rollup

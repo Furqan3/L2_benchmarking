@@ -138,8 +138,8 @@ together, and what every file in the repository is for.</p>
   <tr><td>Supervisor</td><td>Prof. Sara Rouhani, TCDT Lab</td></tr>
   <tr><td>Intern</td><td>Ujala Kiran</td></tr>
   <tr><td>Approach</td><td>Observational — measure public networks, host nothing</td></tr>
-  <tr><td>Status</td><td>29 of 38 tasks complete. Phases A–E done; analysis figures built; collection now runs unattended</td></tr>
-  <tr><td>Date</td><td>10 August 2026</td></tr>
+  <tr><td>Status</td><td>29 of 38 tasks complete. Phases A–E done; analysis figures built; collection runs hourly from cron</td></tr>
+  <tr><td>Date</td><td>10 August 2026, figures as of 15:50 PKT</td></tr>
 </table>
 
 <div class="callout">
@@ -210,7 +210,13 @@ differently once you stop trusting the sequencer.</p>
 
 <p>709 transactions across two architectures, 682 of them successful, plus
 read-only observation of both chains' mainnets. 381 on zkSync Era Sepolia and
-328 on OP Sepolia.</p>
+328 on OP Sepolia; 288 have settled all the way through t₃.</p>
+
+<p>Every number in this section is a snapshot. Collection runs hourly and the
+medians move as it accumulates — OP's partial-trust median fell from 114 s to
+34.78 s between two readings an hour apart, as the sample grew from 101 rows to
+212. Regenerating the figures re-derives all of them from the raw rows, so the
+figures and this text are only in step when both are rebuilt.</p>
 
 <p>27 failed, and they are in the data with reasons rather than discarded: 24
 timed out with no receipt inside 120 seconds, and 3 were rejected outright by a
@@ -241,6 +247,11 @@ ETH) divided by the 875 transactions sharing the batch.</p>
   eleven-minute window. The tell is that the t₂ and t₃ spreads are identical,
   10.95 minutes each, because both are the same two constants for all 109 rows
   and the entire spread comes from our own submission times differing.</p>
+  <p>A second batch, 21624, now holds 272 of our transactions among 754 in
+  total. It is sealed but not yet committed to the L1, so it contributes no
+  timestamps yet. When it settles it will be the first chance to compare two
+  batches of genuinely different sizes — 875 against 754 — which is the only
+  honest form of the batch-size question available observationally.</p>
   <p>Settlement itself therefore still has <strong>n = 1</strong> on that side.
   These medians demonstrate that the pipeline works end to end; they are not yet
   a characterisation of the network, and no percentile on t₂ or t₃ means what a
@@ -258,16 +269,19 @@ exists to produce.</p>
 <table class="grid">
   <tr><th style="width:118px">Level</th><th class="num" style="width:88px">zkSync Era</th><th style="width:66px">kind</th><th class="num" style="width:88px">OP Sepolia</th><th style="width:66px">kind</th><th>ratio</th></tr>
   <tr><td>Full trust (t₁)</td><td class="num">18.90 s</td><td>observed</td><td class="num">18.89 s</td><td>observed</td><td><strong>indistinguishable</strong></td></tr>
-  <tr><td>Partial trust (t₂)</td><td class="num">25.49 min</td><td>observed</td><td class="num">1.90 min</td><td>estimated</td><td>OP <strong>13.4x faster</strong></td></tr>
+  <tr><td>Partial trust (t₂)</td><td class="num">25.49 min</td><td>observed</td><td class="num">0.58 min</td><td>estimated</td><td>OP <strong>44x faster</strong></td></tr>
   <tr><td>Trustless (t₃)</td><td class="num">36.69 min</td><td>observed</td><td class="num"><strong>7.01 days</strong></td><td>derived</td><td>OP <strong>275x slower</strong></td></tr>
 </table>
 
-<p>Native transfer, medians over 265 and 212 successful transactions. Like for
-like: an earlier version of this table compared OP's single-transaction run
+<p>Native transfer, medians over 265 and 212 successful transactions, n=104 and
+n=212 respectively at partial trust. Like for like: an earlier version of this table compared OP's single-transaction run
 against zkSync's batch of fifty and made the optimistic rollup look thirty times
 faster at full trust. It is not — with more data the two are now
 indistinguishable at full trust, 18.90 s against 18.89 s, and the comparison
-only becomes interesting further down the table.</p>
+only becomes interesting further down the table. The partial-trust gap has
+widened rather than narrowed as the sample grew, which is the direction that
+matters: OP posts batches to the L1 every few minutes where zkSync posts every
+half hour.</p>
 
 <div class="callout">
   <div class="label">The inversion, and why the kind column is not decoration</div>
