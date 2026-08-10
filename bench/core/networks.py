@@ -15,7 +15,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
+from requests.exceptions import ConnectionError, HTTPError, Timeout, TooManyRedirects
 from web3 import Web3
+from web3.providers.rpc.utils import ExceptionRetryConfiguration
 
 from bench.core.wallet import load_env
 
@@ -140,9 +142,41 @@ def faucets() -> dict[str, list[dict]]:
 DEFAULT_TIMEOUT_S = 60.0
 
 
+# Public endpoints rate-limit, and unattended collection meets that at three in
+# the morning with nobody watching. Measured 2026-08-10: OP Sepolia returned
+# 429 mid-batch when two submitters overlapped.
+#
+# Retries are deliberately NOT applied to eth_sendRawTransaction. Retrying a
+# broadcast risks submitting the same signed transaction twice - usually
+# harmless, since the second is rejected as a duplicate nonce, but "usually"
+# is not a property a benchmark should rely on. A failed broadcast is recorded
+# as a failed broadcast; reads are what get retried.
+RETRY_ERRORS = (ConnectionError, HTTPError, Timeout, TooManyRedirects)
+RETRY_COUNT = 5
+RETRY_BACKOFF = 0.5
+
+READ_METHODS = (
+    "eth_chainId", "eth_blockNumber", "eth_getBlockByNumber",
+    "eth_getBlockByHash", "eth_getTransactionByHash",
+    "eth_getTransactionReceipt", "eth_getTransactionCount", "eth_getBalance",
+    "eth_getLogs", "eth_call", "eth_estimateGas", "eth_gasPrice",
+    "eth_getCode", "zks_getL1BatchDetails", "zks_getTransactionDetails",
+    "zks_L1BatchNumber", "zks_getMainContract",
+)
+
+
 def connect(network: Network, timeout: float = DEFAULT_TIMEOUT_S) -> Web3:
     """An HTTP connection to one network. Does not verify the chain id."""
-    return Web3(Web3.HTTPProvider(network.rpc, request_kwargs={"timeout": timeout}))
+    return Web3(Web3.HTTPProvider(
+        network.rpc,
+        request_kwargs={"timeout": timeout},
+        exception_retry_configuration=ExceptionRetryConfiguration(
+            errors=RETRY_ERRORS,
+            retries=RETRY_COUNT,
+            backoff_factor=RETRY_BACKOFF,
+            method_allowlist=list(READ_METHODS),
+        ),
+    ))
 
 
 class ChainIdMismatch(RuntimeError):
