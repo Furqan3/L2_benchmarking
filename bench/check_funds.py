@@ -15,6 +15,7 @@ so it can gate a later script rather than needing to be read by eye.
 import argparse
 import datetime as dt
 import sys
+import time
 from decimal import Decimal
 
 import yaml
@@ -38,11 +39,25 @@ from bench.core.wallet import ACCOUNTS_CONFIG, check_address
 # covers gas spiking by an order of magnitude mid-study.
 COMFORTABLE_ETH = Decimal("0.005")
 
+# How far behind the wall clock an endpoint's latest block may be before we stop
+# believing anything it says.
+#
+# A stalled endpoint is worse than an unreachable one: it answers, reports the
+# right chain id, and serves state frozen at some point in the past - so a
+# balance reads as zero and a receipt poll never resolves, both of which look
+# exactly like ordinary results. Measured 2026-08-10, the public Cardona
+# endpoint was serving blocks 38 days old while reporting chain 2442 correctly.
+#
+# Generous enough not to fire on slow L1 block times or a brief lag; anything
+# beyond it is a stall, not a delay.
+STALE_AFTER_S = 30 * 60
+
 
 class Status:
     OK = "funded"
     LOW = "low"
     EMPTY = "empty"
+    STALE = "stale"
     WRONG_CHAIN = "wrong chain"
     UNREACHABLE = "unreachable"
 
@@ -55,6 +70,7 @@ def probe(network: Network, address: str) -> dict:
         "balance_eth": None,
         "chain_id": None,
         "block": None,
+        "lag_s": None,
         "detail": "",
     }
     try:
@@ -64,11 +80,23 @@ def probe(network: Network, address: str) -> dict:
             result["status"] = Status.WRONG_CHAIN
             result["detail"] = f"expected {network.chain_id}"
             return result
-        result["block"] = w3.eth.block_number
+        # The full block, not just the number, so we can tell a live chain from
+        # one whose endpoint stopped following it.
+        head = w3.eth.get_block("latest")
+        result["block"] = head["number"]
+        result["lag_s"] = max(0.0, time.time() - head["timestamp"])
+
         wei = w3.eth.get_balance(Web3.to_checksum_address(address))
         eth = Decimal(str(Web3.from_wei(wei, "ether")))
         result["balance_eth"] = eth
-        if eth == 0:
+
+        if result["lag_s"] > STALE_AFTER_S:
+            # Deliberately overrides the funding status. The balance came from
+            # stale state, so reporting it as "funded" would be a number we do
+            # not actually believe.
+            result["status"] = Status.STALE
+            result["detail"] = f"head is {result['lag_s'] / 3600:.0f}h old"
+        elif eth == 0:
             result["status"] = Status.EMPTY
         elif eth < COMFORTABLE_ETH:
             result["status"] = Status.LOW
@@ -124,7 +152,14 @@ def next_actions(results: list[dict], required: list[str]) -> list[str]:
                 )
 
     for r in results:
-        if r["status"] == Status.WRONG_CHAIN:
+        if r["status"] == Status.STALE:
+            todo.append(
+                f"{r['network'].key}: endpoint is serving state "
+                f"{r['lag_s'] / 3600:.0f}h old. Replace it - export "
+                f"BENCH_RPC_{r['network'].key.upper()}=<url> - or drop the "
+                "network. Every measurement taken through it would be wrong."
+            )
+        elif r["status"] == Status.WRONG_CHAIN:
             todo.append(
                 f"{r['network'].key}: endpoint reports chain {r['chain_id']}, "
                 f"config expects {r['network'].chain_id}. Fix networks.yaml."
