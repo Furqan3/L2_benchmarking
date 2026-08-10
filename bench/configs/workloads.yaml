@@ -1,0 +1,72 @@
+# Workload definitions (task B1).
+#
+# Two workloads only. The handbook is explicit about this: more variants can be
+# added once the three-level finality pipeline works end to end, and not before.
+#
+#   native_transfer  - the floor. Intrinsic gas only, no calldata, no storage.
+#   erc20_transfer   - representative usage. Real calldata, two storage writes,
+#                      one event. This is the one that makes DA bytes differ
+#                      between workloads, which is the done-when test for D3.
+#
+# Nothing here contains a function selector or hand-encoded calldata. Selectors
+# are derived from abis/erc20.json at runtime and arguments are encoded by the
+# ABI encoder, because hand-written calldata passes every check we write and
+# fails on first submission.
+
+workloads:
+
+  native_transfer:
+    kind: native
+    description: Plain value transfer, no contract involved.
+    # Non-zero so the transfer is a real state change rather than a no-op that
+    # a future rollup optimisation could treat differently. One wei is enough.
+    value_wei: 1
+
+  erc20_transfer:
+    kind: erc20
+    description: ERC-20 transfer of one token unit.
+    abi: erc20.json
+    # Token units, not decimals-adjusted. The amount is irrelevant to gas and
+    # to DA size as long as it is non-zero, and keeping it at 1 means the
+    # sending balance survives the whole experiment matrix.
+    amount: 1
+
+
+# Where both workloads send. A single fixed recipient, deliberately not our own
+# account.
+#
+# Self-transfer would keep balances exactly constant, but it is the cheapest
+# possible case: sender and recipient are the same warm storage slot. Measuring
+# it would understate what an ERC-20 transfer actually costs a rollup to settle.
+#
+# This address is a black hole nobody holds the key to, derived reproducibly so
+# that a reviewer can regenerate it rather than take our word for it:
+#
+#   Web3.to_checksum_address(Web3.keccak(text="l2-benchmarking-sink-50081")[-20:])
+#
+# NOT the usual 0x...dEaD burn address. Measured 2026-08-10 on zkSync Era
+# Sepolia: every transfer to an address below roughly 0x20000 reverts, because
+# that range is reserved for zkSync system contracts, and 0xdEaD is 57005. It
+# estimates fine on Sepolia and fails only on the rollup - exactly the kind of
+# per-network quirk that would otherwise surface as an inexplicable Phase B
+# failure. Worth a line in the implementation section.
+#
+# WARM THE SLOT ONCE before any measured run. The first ERC-20 transfer to a
+# zero-balance recipient writes a fresh storage slot and costs roughly 20,000
+# gas more than every subsequent one. Left unwarmed, the first transaction of
+# each run is an outlier that has nothing to do with the rollup.
+recipient: "0x812Af365B2fEA88aCd7df2D84eDD34BD9527e86F"
+
+
+# ERC-20 deployed for this study, per network (task B1 step 2).
+#
+# Recorded here rather than in code so a run is described entirely by committed
+# config. null means no token is deployed on that network yet and the
+# erc20_transfer workload is unavailable there - reported as unavailable, never
+# silently skipped.
+tokens:
+  sepolia: null
+  zksync_sepolia: "0xA1b9fdb1599fd89250B3463A1daA96c32C4BD958"
+  polygon_zkevm_cardona: null
+  op_sepolia: null
+  arbitrum_sepolia: null
