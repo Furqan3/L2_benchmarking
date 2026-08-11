@@ -51,5 +51,17 @@ stamp() { date -u +"%Y-%m-%dT%H:%M:%SZ"; }
   # one, so it can never share a process with the thing that submits.
   timeout 1800 "$PYTHON" -m bench.resolve_run 2>&1 | tail -8
 
+  # Then check the result against invariants that cannot legitimately fail.
+  #
+  # This is the tick's whole reason for existing unattended. Both data bugs
+  # this project has had produced plausible numbers rather than crashes, and
+  # both were caught by somebody happening to look at a median. Running the
+  # check every hour means the next one is caught by the machine, at the tick
+  # it appears, rather than in week seven by a reviewer.
+  if ! timeout 600 "$PYTHON" -m bench.check_data --quiet 2>&1 | tail -20; then
+    echo "!!! DATA INTEGRITY FAILURE - see above. Collection continues, but"
+    echo "!!! do not trust figures generated from these rows until it is fixed."
+  fi
+
   echo "--- $(stamp) tick done ---"
 } >> "$LOG" 2>&1

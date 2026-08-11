@@ -64,6 +64,12 @@ L1_BLOCK_PREDEPLOY = "0x4200000000000000000000000000000000000015"
 #: and started it in the right place.
 BATCH_SCAN_BLOCKS = 60
 
+#: How far back through the dispute game factory to look. OP Sepolia proposes
+#: roughly four output roots an hour, so this covers several days - ample for a
+#: transaction submitted during a run, and bounded so a transaction that will
+#: never be proposed cannot walk 80,000 games.
+GAME_SCAN_LIMIT = 400
+
 _MIN_ABI = [
     {"type": "function", "name": "number", "stateMutability": "view",
      "inputs": [], "outputs": [{"name": "", "type": "uint64"}]},
@@ -223,11 +229,39 @@ class OptimismAdapter:
         )
         return int(portal.functions.proofMaturityDelaySeconds().call())
 
-    def game_covering(self, w3_l1, net, l2_block: int) -> dict | None:
-        """The first dispute game whose output root covers our L2 block.
+    def respected_game_type(self, w3_l1, net) -> int:
+        """The only game type that decides finality, per the portal."""
+        portal = w3_l1.eth.contract(
+            address=w3_l1.to_checksum_address(net.l1_portal), abi=_PORTAL_ABI
+        )
+        return int(portal.functions.respectedGameType().call())
 
-        Games are created in ascending L2 block order, so this binary searches
-        the factory by index rather than walking 80,000 games.
+    def game_covering(self, w3_l1, net, l2_block: int) -> dict | None:
+        """The first respected dispute game whose output root covers our block.
+
+            WHY THIS IS A BACKWARD SCAN AND NOT A BINARY SEARCH
+
+        It was a binary search, and the binary search was wrong in two ways that
+        produced confidently incorrect data rather than an error.
+
+        First, gameAtIndex is ordered by creation, not by L2 block, and the
+        sequence is not monotonic. Game 62192 on OP Sepolia reports an
+        l2BlockNumber of 1,767,657,607 - which is not a block number at all, it
+        is a Unix timestamp - on a chain whose head is around 47 million. A
+        binary search over a sequence containing that lands wherever the
+        garbage sends it.
+
+        Second, it ignored gameType. That game is type 0; the portal's
+        respectedGameType is 8. A game of an unrespected type has no bearing on
+        finality and must not be consulted at all.
+
+        Together they matched 196 transactions submitted in August to a game
+        created the previous January, giving each of them a trustless timestamp
+        209 days BEFORE it was submitted.
+
+        Scanning backward from the newest game is cheap - OP Sepolia proposes
+        roughly four an hour, so a few hundred games covers days - and it does
+        not assume an ordering the data does not have.
         """
         factory = w3_l1.eth.contract(
             address=w3_l1.to_checksum_address(net.l1_dispute_game_factory),
@@ -237,55 +271,42 @@ class OptimismAdapter:
         if count == 0:
             return None
 
-        def game_at(index: int):
+        respected = self.respected_game_type(w3_l1, net)
+        best: dict | None = None
+
+        for index in range(count - 1, max(-1, count - 1 - GAME_SCAN_LIMIT), -1):
             if index not in _game_cache:
-                _game_cache[index] = factory.functions.gameAtIndex(index).call()
-            return _game_cache[index]
+                try:
+                    _game_cache[index] = factory.functions.gameAtIndex(index).call()
+                except Exception:  # noqa: BLE001
+                    continue
+            game_type, created_at, proxy = _game_cache[index]
 
-        def l2_of(index: int) -> int:
-            if index not in _l2_block_cache:
-                _type, _ts, proxy = game_at(index)
-                game = w3_l1.eth.contract(address=proxy, abi=_GAME_ABI)
-                _l2_block_cache[index] = int(game.functions.l2BlockNumber().call())
-            return _l2_block_cache[index]
-
-        # Check the newest game first. Output roots are proposed periodically,
-        # so a transaction submitted minutes ago is normally ahead of every
-        # proposal - and answering that with a seventeen-probe binary search
-        # over eighty thousand games, per row, for a result of "not yet", was
-        # the single slowest thing in the resolve pass.
-        try:
-            if l2_of(count - 1) < l2_block:
-                return None
-        except Exception:  # noqa: BLE001
-            pass
-
-        low, high, answer = 0, count - 1, None
-        while low <= high:
-            mid = (low + high) // 2
-            try:
-                covered = l2_of(mid)
-            except Exception:  # noqa: BLE001
-                low = mid + 1
+            if int(game_type) != respected:
                 continue
+
+            if index not in _l2_block_cache:
+                try:
+                    game = w3_l1.eth.contract(address=proxy, abi=_GAME_ABI)
+                    _l2_block_cache[index] = int(
+                        game.functions.l2BlockNumber().call()
+                    )
+                except Exception:  # noqa: BLE001
+                    continue
+            covered = _l2_block_cache[index]
+
             if covered >= l2_block:
-                answer, high = mid, mid - 1
+                # A candidate. Keep walking back for an earlier one that still
+                # covers our block, since we want the first proposal to do so.
+                best = {"index": index, "proxy": proxy,
+                        "game_type": int(game_type),
+                        "created_at": int(created_at), "l2_block": covered}
             else:
-                low = mid + 1
+                # Respected games do run in ascending L2 block order, so the
+                # first one that falls short means we have gone far enough.
+                break
 
-        if answer is None:
-            # No proposal covers our block yet. Genuinely "not yet".
-            return None
-
-        game_type, created_at, proxy = game_at(answer)
-        game = w3_l1.eth.contract(address=proxy, abi=_GAME_ABI)
-        return {
-            "index": answer,
-            "proxy": proxy,
-            "game_type": game_type,
-            "created_at": int(created_at),
-            "l2_block": int(game.functions.l2BlockNumber().call()),
-        }
+        return best
 
     # -- interface --------------------------------------------------------
 

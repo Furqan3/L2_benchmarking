@@ -114,9 +114,16 @@ def apply_settlement(
     # challenge window closes - so it is taken straight from the adapter and
     # flagged, never looked up and never presented as an observation.
     if settlement.t3_derived_at is not None and record.get("t3") is None:
-        record["t3"] = settlement.t3_derived_at
-        record["t3_kind"] = settlement.t3_kind
-        record["t3_source"] = settlement.t3_source
+        # Guarded exactly like a looked-up timestamp. Leaving this path
+        # unguarded was how 196 rows acquired a trustless timestamp 209 days
+        # before their own submission: the value was computed rather than
+        # fetched, so it never passed through the check that would have caught
+        # it. A derived number deserves more scrutiny than an observed one, not
+        # less.
+        if _plausible(record, settlement.t3_derived_at, "t3"):
+            record["t3"] = settlement.t3_derived_at
+            record["t3_kind"] = settlement.t3_kind
+            record["t3_source"] = settlement.t3_source
 
     if settlement.prove_tx and record.get("t3") is None:
         try:

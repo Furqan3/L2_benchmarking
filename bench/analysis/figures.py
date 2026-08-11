@@ -441,6 +441,107 @@ def figure_cost(data: dict[str, list[dict]]) -> None:
                 table)
 
 
+def figure_batch_scaling(data: dict[str, list[dict]]) -> None:
+    """Per-transaction cost against the batch's own size (F3, honestly).
+
+        WHY THE X AXIS IS THE ROLLUP'S BATCH SIZE AND NOT OURS
+
+    The task asks whether per-transaction cost falls as batch size grows. The
+    obvious experiment - submit 1, then 10, then 100, and compare - does not
+    answer it. Seven runs of sizes 1 to 50 all landed in one batch of 875 and
+    produced an identical cost, because per-transaction cost is the batch's
+    cost over the batch's own transaction count and we are a small minority of
+    that count. Our submission size is our load, not the rollup's batch size.
+
+    What does answer it is the rollup's own variation. Its batches differ in
+    size for reasons of its own - traffic, timing, sealing rules - and across
+    enough of them the relationship is visible without us having caused it.
+    Observation rather than intervention, which is the whole design of this
+    study.
+    """
+    from bench.core.costs import l1_cost
+    from bench.core.networks import connect_verified, load_networks
+
+    networks = load_networks()
+    seen: dict[tuple, dict] = {}
+    for network, rows in data.items():
+        for row in rows:
+            if (row.get("batch") is not None and row.get("batch_tx_count")
+                    and row.get("l1_commit_tx")):
+                seen.setdefault((network, row["batch"]), row)
+    if len(seen) < 3:
+        print("  f3 skipped - needs at least three settled batches")
+        return
+
+    connections: dict[str, object] = {}
+    points: list[tuple[int, float, str]] = []
+    for (network, batch), row in sorted(seen.items(), key=lambda kv: kv[0][1]):
+        net = networks.get(network)
+        if not net or not net.settles_on:
+            continue
+        if net.settles_on not in connections:
+            connections[net.settles_on] = connect_verified(networks[net.settles_on])
+        w3 = connections[net.settles_on]
+        try:
+            total = l1_cost(w3, row["l1_commit_tx"]).total_wei
+            if row.get("l1_prove_tx"):
+                total += l1_cost(w3, row["l1_prove_tx"]).total_wei
+        except Exception:  # noqa: BLE001
+            continue
+        points.append((row["batch_tx_count"], total / row["batch_tx_count"] / 1e9,
+                       str(batch)))
+    if len(points) < 3:
+        print("  f3 skipped - too few costable batches")
+        return
+
+    points.sort()
+    sizes = [p[0] for p in points]
+    costs = [p[1] for p in points]
+
+    fig, ax = plt.subplots(figsize=(6.4, 4.2))
+    ax.plot(sizes, costs, "o", color="#2a78d6", markersize=9,
+            markeredgecolor=SURFACE, markeredgewidth=2, zorder=3)
+
+    # The reference curve is not a fit. If the batch's fixed cost were spread
+    # evenly, cost per transaction would go exactly as 1/n; drawing that shows
+    # how closely the observed points follow it without implying we modelled
+    # anything.
+    anchor = sizes[0] * costs[0]
+    curve_x = list(range(min(sizes), max(sizes) + 1, max(1, (max(sizes) - min(sizes)) // 60)))
+    ax.plot(curve_x, [anchor / x for x in curve_x], "-", color=INK_SOFT,
+            linewidth=1.2, alpha=0.55, zorder=1,
+            label="a fixed batch cost shared evenly (1/n)")
+
+    # Alternate the label above and below when two batches sit close together
+    # on the x axis; at a fixed offset 21626 and 21628 overlapped into "2162826".
+    span = (max(sizes) - min(sizes)) or 1
+    previous = None
+    flip = False
+    for size, cost, label in points:
+        if previous is not None and (size - previous) / span < 0.06:
+            flip = not flip
+        else:
+            flip = False
+        ax.annotate(label, xy=(size, cost), xytext=(0, -18 if flip else 11),
+                    textcoords="offset points", ha="center", fontsize=7,
+                    color=INK_SOFT)
+        previous = size
+
+    ax.set_xlabel("transactions in the batch (the rollup's, not ours)")
+    ax.set_ylabel("L1 cost per transaction (nanoETH)")
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.legend(loc="upper right")
+
+    drop = (costs[0] - costs[-1]) / costs[0] * 100
+    fig.suptitle(
+        f"Cost per transaction falls {drop:.0f}% from the smallest batch to "
+        f"the largest",
+        fontsize=12, color=INK, y=1.0, x=0.02, ha="left")
+    save(fig, "f3_batch_scaling")
+    write_table("f3_batch_scaling", ["batch", "batch_tx_count", "cost_neth_per_tx"],
+                [[c, a, f"{b:.2f}"] for a, b, c in points])
+
+
 def main() -> int:
     style()
     data = rows_by_network()
@@ -452,6 +553,7 @@ def main() -> int:
     figure_cdf(data)
     figure_inversion(data)
     figure_cost(data)
+    figure_batch_scaling(data)
     print(f"\nfigures in {FIGURE_DIR}\n")
     return 0
 
