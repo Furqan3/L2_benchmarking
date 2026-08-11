@@ -336,7 +336,7 @@ on a third party staying online.
 | G | Analysis | G1–G3 done; G4, G5 remaining |
 | H | Write and deliver | H1–H5 remaining |
 
-**29 of 38 tasks complete.**
+**31 of 38 tasks complete.**
 
 ### What remains, and why
 
