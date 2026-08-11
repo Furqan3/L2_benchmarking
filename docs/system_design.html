@@ -42,6 +42,9 @@
 
   code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.2pt;
          background: #f4f4f2; padding: 0.5px 3px; border-radius: 2px; }
+  figure { margin: 14px 0 18px 0; page-break-inside: avoid; }
+  figure img { width: 100%; height: auto; }
+  figcaption { font-size: 8.6pt; color: #52514e; margin-top: 6px; line-height: 1.4; }
   pre { font-family: "DejaVu Sans Mono", monospace; font-size: 7.5pt; background: #fbfbfa;
         border-left: 2.5px solid #c8c8c4; padding: 10px 12px; margin: 9px 0 12px 0;
         line-height: 1.4; white-space: pre-wrap; page-break-inside: avoid; }
@@ -95,34 +98,24 @@ then reads Ethereum to find out what happened to it.</p>
 <p>That single fact is why the system looks the way it does: it is a
 <em>submitter</em> and a <em>reader</em>, and they are separate programs.</p>
 
+<figure>
+  <img src="network_flow.svg" alt="Network flow">
+  <figcaption><strong>Figure 2.</strong> Six chains, two of which we write to.
+  Everything else is read. The rollups publish their own batches and proofs to
+  their L1 because their security depends on it; the study reads that evidence
+  rather than producing any. Mainnet entries are flagged read-only and refuse a
+  signature before a connection is even opened.</figcaption>
+</figure>
+
 <h2>2 · The big picture</h2>
 
-<pre>
-   YOU                      THE FRAMEWORK                    THE WORLD
-   ---                      -------------                    ---------
-
-   configs/  ------------>  submit_run.py  --------------->  L2 network
-   (what to run)            (sends transactions)             (zkSync / OP)
-                                  |
-                                  | writes rows
-                                  v
-                            results/*.jsonl  <-- the single source of truth
-                                  ^
-                                  | fills in t2, t3
-                                  |
-   cron  ---------------->  resolve_run.py  <---------------  Ethereum L1
-   (hourly)                 (reads settlement)                (batch + proof)
-                                  |
-                                  v
-                            check_data.py
-                            (are the rows possible?)
-                                  |
-                                  v
-                       export.py / analysis/figures.py
-                                  |
-                                  v
-                            CSV + PNG + PDF
-</pre>
+<figure>
+  <img src="system_diagram.svg" alt="System flow">
+  <figcaption><strong>Figure 1.</strong> Submission and resolution are two
+  separate programs joined only by a file. The submit pass finishes in minutes;
+  the resolve pass runs hourly for as long as settlement takes — half an hour on
+  a ZK rollup, seven days on an optimistic one. Neither knows the other exists.</figcaption>
+</figure>
 
 <p>Three layers, and the rule between them:</p>
 
