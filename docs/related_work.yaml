@@ -1,0 +1,105 @@
+# The framework comparison table (task H1).
+#
+# Rows are the benchmarking frameworks this study sits beside. Columns are the
+# capabilities that distinguish them. The empty cells in the finality_aware
+# column are the contribution - say so explicitly in the surrounding text rather
+# than leaving a reader to notice.
+#
+#     EVERY CELL COMES FROM THE PAPER, NOT FROM MEMORY
+#
+# Each row carries a `verified` field. It stays false until somebody has opened
+# the paper at the DOI recorded here and confirmed the cells against it. Rows
+# marked false are rendered with a warning rather than silently presented as
+# fact, because a wrong cell in a comparison table is the first thing a reviewer
+# checks - and a fabricated one loses their trust in everything else.
+#
+# Values: yes | no | partial | unknown
+#   unknown means nobody has checked yet. It is not a synonym for no.
+
+columns:
+  - targets          # L1, L2, or both
+  - metrics          # what it measures
+  - finality_aware   # does it distinguish levels of settlement?
+  - emulation        # can it emulate network conditions?
+  - cost             # does it measure monetary cost?
+  - reproducible     # are configs/versions pinned and published?
+  - code_public      # is the implementation available?
+
+rows:
+
+  - name: Hyperledger Caliper
+    verified: false
+    citation: >
+      R. K. Kaushal and N. Kumar, "Exploring Hyperledger Caliper Benchmarking
+      Tool to Measure the Performance of Blockchain Based Solutions," 2024 11th
+      International Conference on Reliability, Infocom Technologies and
+      Optimization (Trends and Future Directions) (ICRITO), Noida, India, 2024,
+      pp. 1-6.
+    doi: 10.1109/ICRITO61523.2024.10522188
+    note: >
+      An APPLICATION of Caliper to a Hyperledger Fabric remote-patient-monitoring
+      system, not a paper presenting Caliper itself. Usable as evidence of what
+      Caliper measures, but the row describes the framework, so consider citing
+      the Hyperledger Foundation's own documentation alongside it, or a source
+      that presents the tool directly.
+    cells:
+      # Provisional, inferred from the title and keywords only - the paper has
+      # not been read. Every one of these must be confirmed or corrected.
+      targets: L1 (permissioned - Hyperledger Fabric)
+      metrics: throughput, latency, resource use
+      finality_aware: unknown
+      emulation: unknown
+      cost: unknown
+      reproducible: unknown
+      code_public: yes
+
+  - name: Blockbench
+    verified: false
+    citation: TODO
+    doi: TODO
+    cells: {targets: unknown, metrics: unknown, finality_aware: unknown,
+            emulation: unknown, cost: unknown, reproducible: unknown, code_public: unknown}
+
+  - name: BCTMark
+    verified: false
+    citation: TODO - PDF is in candada_research/BCTMark_a_Framework_for_Benchmarking_Blockchain_Technologies.pdf
+    doi: TODO
+    cells: {targets: unknown, metrics: unknown, finality_aware: unknown,
+            emulation: unknown, cost: unknown, reproducible: unknown, code_public: unknown}
+
+  - name: Gromit
+    verified: false
+    citation: TODO - PDF is in candada_research/Gromit_Benchmarking_the_Performance_and_Scalability_of_Blockchain_Systems.pdf
+    doi: TODO
+    cells: {targets: unknown, metrics: unknown, finality_aware: unknown,
+            emulation: unknown, cost: unknown, reproducible: unknown, code_public: unknown}
+
+  - name: Cable (thesis)
+    verified: false
+    citation: TODO - PDF is in candada_research/Cable_lehigh_0105N_13110.pdf
+    doi: TODO
+    cells: {targets: unknown, metrics: unknown, finality_aware: unknown,
+            emulation: unknown, cost: unknown, reproducible: unknown, code_public: unknown}
+
+  - name: Chaliasos et al. (AFT 2024)
+    verified: false
+    citation: TODO - PDF is in candada_research/LIPIcs.AFT.2024.6.pdf
+    doi: TODO
+    cells: {targets: unknown, metrics: unknown, finality_aware: unknown,
+            emulation: unknown, cost: unknown, reproducible: unknown, code_public: unknown}
+
+  # This row is verified because it describes work done in this repository and
+  # every claim in it is demonstrable on request - which is the same standard
+  # the other rows are held to.
+  - name: This study
+    verified: true
+    citation: This work — Mitacs Globalink 2026, project 50081
+    doi: n/a
+    cells:
+      targets: L2 (zkSync Era, OP Stack), settling to Ethereum
+      metrics: latency at three finality levels, real L1 cost, achieved throughput, DA size
+      finality_aware: "yes - t1 full trust, t2 partial trust, t3 trustless"
+      emulation: no - observational, public networks only
+      cost: yes - from L1 receipts, with the ETH rate and gas price recorded
+      reproducible: yes - pinned versions, committed configs, raw rows exported
+      code_public: yes
