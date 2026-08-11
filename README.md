@@ -21,18 +21,19 @@ Prof. Sara Rouhani, TCDT Lab.
 
 ## Results so far
 
-**709 transactions, 96.2% success**, across two rollup architectures, plus
-read-only observation of both chains' mainnets.
+**1,265 transactions, 97.9% success**, across two rollup architectures, plus
+read-only observation of both chains' mainnets. 1,237 settled through `t3`
+across **eight distinct zkSync batches**.
 
 
 | Level | zkSync Era Sepolia | kind | OP Sepolia | kind | ratio |
 |---|---|---|---|---|---|
-| Full trust (`t1`) | 18.90 s | observed | 18.89 s | observed | **indistinguishable** |
-| Partial trust (`t2`) | 25.49 min | observed | 0.58 min | *estimated* | OP **44x faster** |
-| Trustless (`t3`) | 36.69 min | observed | **7.01 days** | *derived* | OP **275x slower** |
+| Full trust (`t1`) | 35.36 s | observed | 25.99 s | observed | comparable |
+| Partial trust (`t2`) | 25.29 min | observed | 1.90 min | *estimated* | OP **13.3x faster** |
+| Trustless (`t3`) | 35.82 min | observed | **7.01 days** | *derived* | OP **281x slower** |
 
-Native transfer, medians over 265 and 212 successful transactions. **Snapshot as
-of 15:50 PKT on 10 Aug 2026** — collection runs hourly and these move as it
+Native transfer, medians over 487 and 323 successful transactions. **Snapshot as
+of 08:30 PKT on 11 Aug 2026** — collection runs hourly and these move as it
 accumulates. Regenerate with `python -m bench.export` and
 `python -m bench.analysis.figures`.
 
@@ -41,9 +42,23 @@ At full trust the two architectures are **indistinguishable** — 18.90 s agains
 to L1 every few minutes rather than every half hour. And then it loses by more
 than two orders of magnitude at trustless finality.
 
-The partial-trust gap has *widened* as the sample grew — OP's median fell from
-114 s to 34.78 s as n went from 101 to 212 — which is the direction that
-matters.
+**Watch the n before quoting a ratio.** The partial-trust figure read 13.4x,
+then 44x an hour later, then settled at 13.3x once the sample reached 323 rows.
+The 44x was a small-sample artefact.
+
+### Reproducibility (G4)
+
+Four cells have run on more than one day. Median divergence **12.1%**, worst
+**65.7%** — but the split is the point: full trust reproduces to within 1% on
+small batches, while partial and trustless move 20–66% between days. `t1`
+measures a sequencer accepting a transaction; `t2` and `t3` depend on where in a
+batch interval you happened to land.
+
+### Batch-size scaling (F3)
+
+Across eight settled batches of 617 to 1,737 transactions, per-transaction L1
+cost falls **66%** and tracks 1/n closely. Note the x axis is the *rollup's*
+batch size, not ours — our submission size does not move that denominator.
 
 **That crossover is the result this project exists to produce**, and it is
 precisely what a single-number latency benchmark cannot show: whichever rollup
@@ -102,10 +117,9 @@ Cost split on zkSync batch 21623: **batch posting 74.00%, proof verification
 24.83%, blob data availability 1.17%**. Blob DA being near-free is a property of
 Sepolia's blob market sitting at its floor, not a mainnet result.
 
-> **Caveat.** Settlement is still thin: zkSync's 109 earliest transactions all
-> landed in a **single batch**, so those percentiles do not yet mean what
-> percentiles normally mean. Task F2 — five repetitions at least an hour apart —
-> is what fixes this, and it now runs hourly from cron.
+> **Caveat.** Every figure here is a snapshot from an ongoing collection. F2 is
+> at 28 of 60 repetitions and accumulating hourly, so the medians still move.
+> Regenerate before citing anything.
 
 ## Setup
 
@@ -329,8 +343,8 @@ on a third party staying online.
 | Task | Blocked by |
 |---|---|
 | **F2** repetitions | Wall clock. 48 outstanding, one per hour by design — running them faster would measure one moment repeatedly |
-| **F3** batch sweep | Half of it is **not reachable**; see below |
-| **G4** reproducibility | The calendar. Its done-when is "re-run on a different day" |
+| **F3** batch sweep | **Done** — answered via the rollup's own batch-size variation |
+| **G4** reproducibility | **Done** — 12.1% median divergence between days |
 | **G5** threats to validity | Nothing. Not yet written |
 | **H1–H5** | You. H1 needs papers you have opened; H2/H4/H5 are yours to author |
 
