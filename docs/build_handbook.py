@@ -16,6 +16,7 @@ DOCUMENTS = (
     ("handbook.html", "L2_Benchmark_Project_Handbook.pdf"),
     ("system_design.html", "L2_Benchmark_System_Design.pdf"),
     ("reproduction_log.html", "L2_Benchmark_Reproduction_Log.pdf"),
+    ("results.html", "L2_Benchmark_Results.pdf"),
 )
 
 

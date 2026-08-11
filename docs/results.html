@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>L2 Benchmark — Results</title>
+<style>
+  @page {
+    size: A4; margin: 19mm 16mm 17mm 16mm;
+    @bottom-center { content: counter(page); font-family: Georgia, serif; font-size: 8.5pt; color: #8a8a8a; }
+    @bottom-right { content: "Results · Project 50081"; font-family: Georgia, serif; font-size: 7.5pt; color: #a8a8a8; }
+  }
+  @page :first { @bottom-center { content: ""; } @bottom-right { content: ""; } }
+
+  html { font-size: 10pt; }
+  body { font-family: Georgia, "Times New Roman", serif; color: #1c1c1c; line-height: 1.48; }
+
+  h1 { font-size: 21pt; line-height: 1.15; margin: 0 0 6px 0; font-weight: normal; letter-spacing: -0.3px; }
+  h2 { font-size: 13pt; font-weight: normal; margin: 22px 0 8px 0; padding-bottom: 4px;
+       border-bottom: 1.2px solid #1c1c1c; page-break-after: avoid; }
+  h3 { font-size: 10.4pt; margin: 15px 0 5px 0; font-weight: bold; page-break-after: avoid; }
+  p { margin: 0 0 7px 0; }
+  ul { margin: 0 0 8px 0; padding-left: 18px; }
+  li { margin-bottom: 4px; }
+
+  .eyebrow { font-family: "DejaVu Sans", Helvetica, sans-serif; font-size: 7.5pt;
+             letter-spacing: 2.4px; text-transform: uppercase; color: #6b6b6b; margin-bottom: 18px; }
+  .lede { font-size: 11.2pt; color: #3a3a3a; line-height: 1.45; margin-bottom: 20px; }
+
+  table.grid { width: 100%; border-collapse: collapse; margin: 9px 0 13px 0; font-size: 8.3pt; }
+  table.grid th { text-align: left; font-family: "DejaVu Sans", Helvetica, sans-serif; font-size: 7.2pt;
+                  text-transform: uppercase; letter-spacing: 0.7px; color: #6b6b6b;
+                  border-bottom: 1px solid #1c1c1c; padding: 5px 7px 4px 0; font-weight: normal; }
+  table.grid td { padding: 4.5px 7px 4.5px 0; border-bottom: 0.5px solid #e8e8e8; vertical-align: top; }
+  table.grid td.n { text-align: right; font-family: "DejaVu Sans Mono", monospace; font-size: 7.9pt; }
+  table.grid tr { page-break-inside: avoid; }
+  table.grid code { background: none; padding: 0; font-size: 7.9pt; }
+
+  code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.1pt;
+         background: #f4f4f2; padding: 0.5px 3px; border-radius: 2px; }
+  pre { font-family: "DejaVu Sans Mono", monospace; font-size: 7.6pt; background: #fbfbfa;
+        border-left: 2.5px solid #c8c8c4; padding: 9px 11px; margin: 8px 0 11px 0;
+        line-height: 1.42; white-space: pre-wrap; page-break-inside: avoid; }
+
+  figure { margin: 12px 0 16px 0; page-break-inside: avoid; }
+  figure img { width: 100%; height: auto; }
+  figcaption { font-size: 8.5pt; color: #52514e; margin-top: 5px; line-height: 1.38; }
+
+  .callout { border: 0.8px solid #1c1c1c; padding: 9px 12px; margin: 11px 0; page-break-inside: avoid; }
+  .callout .label { font-family: "DejaVu Sans", Helvetica, sans-serif; font-size: 7.3pt;
+                    letter-spacing: 1.8px; text-transform: uppercase; margin-bottom: 5px; }
+  .callout p:last-child { margin-bottom: 0; }
+  .warn { border-color: #b45309; background: #fffbf5; }
+  .warn .label { color: #b45309; }
+  .break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<div class="eyebrow">Results</div>
+
+<h1>Finality and Cost on Two<br>Rollup Architectures</h1>
+
+<p class="lede">Every measurement taken, how each was obtained, what it is worth,
+and what it is not.</p>
+
+<table class="grid">
+  <tr><th style="width:130px">Field</th><th>Value</th></tr>
+  <tr><td>Project</td><td>50081, scalability track — Mitacs Globalink 2026</td></tr>
+  <tr><td>Snapshot</td><td>11 August 2026, 09:31 PKT. Collection is ongoing; regenerate before citing</td></tr>
+  <tr><td>Dataset</td><td>1,275 transactions, 1,248 successful (97.9%), 1,237 settled through t₃</td></tr>
+  <tr><td>Networks</td><td>zkSync Era Sepolia, OP Sepolia — plus both mainnets and Ethereum, observed read-only</td></tr>
+  <tr><td>Price basis</td><td>ETH/USD 1,878.11, fetched from CoinGecko and Coinbase, spread 0.00%</td></tr>
+</table>
+
+<h2>1 · The headline</h2>
+
+<p>Same workload, same code path, both architectures. Native transfer, medians
+over 487 and 323 successful transactions.</p>
+
+<table class="grid">
+  <tr><th style="width:120px">Level</th><th class="n" style="width:90px">zkSync Era</th><th style="width:76px">kind</th>
+      <th class="n" style="width:90px">OP Sepolia</th><th style="width:76px">kind</th><th>ratio</th></tr>
+  <tr><td>Full trust (t₁)</td><td class="n">35.36 s</td><td>observed</td>
+      <td class="n">25.99 s</td><td>observed</td><td>comparable</td></tr>
+  <tr><td>Partial trust (t₂)</td><td class="n">25.29 min</td><td>observed</td>
+      <td class="n">1.90 min</td><td>estimated</td><td>OP <strong>13.3× faster</strong></td></tr>
+  <tr><td>Trustless (t₃)</td><td class="n">35.82 min</td><td>observed</td>
+      <td class="n"><strong>7.01 days</strong></td><td>derived</td><td>OP <strong>281× slower</strong></td></tr>
+</table>
+
+<p><strong>Which rollup is "faster" depends entirely on which trust assumption
+was meant.</strong> At full trust the two are within ten seconds of each other.
+The optimistic rollup then pulls sharply ahead at partial trust, because it posts
+batches to Ethereum every few minutes where zkSync posts roughly every half hour.
+And then it loses by more than two orders of magnitude at trustless finality.</p>
+
+<p>That crossover is what a single-number latency benchmark cannot show, and it
+is the result this project exists to produce.</p>
+
+<figure>
+  <img src="../bench/analysis/figures/g2_inversion.png" alt="The inversion">
+  <figcaption><strong>Figure 1.</strong> Solid lines are observed, dashed are
+  derived. The shaded band marks where the faster rollup swaps.</figcaption>
+</figure>
+
+<div class="callout">
+  <div class="label">The kind column is not decoration</div>
+  <p>zkSync's t₃ is <strong>observed</strong>: a proof was verified in an
+  Ethereum block whose timestamp we read, and the transaction hash is in every
+  row. OP's is <strong>derived</strong>: nothing happens when a challenge window
+  closes, so it is a deadline computed from the output proposal plus the
+  challenge period read from the OptimismPortal. The two must never be tabulated
+  as though they were the same kind of fact.</p>
+</div>
+
+<h2>2 · Every latency measured</h2>
+
+<p>All four cells of the workload matrix. Times in seconds unless marked.</p>
+
+<table class="grid">
+  <tr><th style="width:112px">Network</th><th style="width:100px">Workload</th><th style="width:36px">level</th>
+      <th class="n" style="width:44px">n</th><th class="n" style="width:66px">median</th>
+      <th class="n" style="width:66px">p95</th><th class="n" style="width:60px">min</th><th class="n">max</th></tr>
+  <tr><td>zkSync Era</td><td>native</td><td>t₁</td><td class="n">487</td><td class="n">35.36</td><td class="n">41.35</td><td class="n">0.60</td><td class="n">42.04</td></tr>
+  <tr><td></td><td></td><td>t₂</td><td class="n">487</td><td class="n">1,517.30</td><td class="n">1,823.62</td><td class="n">1,017.61</td><td class="n">5,252.77</td></tr>
+  <tr><td></td><td></td><td>t₃</td><td class="n">487</td><td class="n">2,149.48</td><td class="n">2,603.28</td><td class="n">1,797.61</td><td class="n">5,876.77</td></tr>
+  <tr><td>zkSync Era</td><td>ERC-20</td><td>t₁</td><td class="n">238</td><td class="n">38.51</td><td class="n">45.82</td><td class="n">0.60</td><td class="n">46.66</td></tr>
+  <tr><td></td><td></td><td>t₂</td><td class="n">227</td><td class="n">1,169.34</td><td class="n">5,098.12</td><td class="n">767.72</td><td class="n">5,200.90</td></tr>
+  <tr><td></td><td></td><td>t₃</td><td class="n">227</td><td class="n">1,841.34</td><td class="n">5,805.72</td><td class="n">1,547.72</td><td class="n">5,809.98</td></tr>
+  <tr><td>OP Sepolia</td><td>native</td><td>t₁</td><td class="n">323</td><td class="n">25.99</td><td class="n">30.74</td><td class="n">0.49</td><td class="n">47.10</td></tr>
+  <tr><td></td><td></td><td>t₂</td><td class="n">323</td><td class="n">114.13</td><td class="n">214.41</td><td class="n">0.53</td><td class="n">230.59</td></tr>
+  <tr><td></td><td></td><td>t₃</td><td class="n">323</td><td class="n">605,408</td><td class="n">605,601</td><td class="n">605,139</td><td class="n">605,605</td></tr>
+  <tr><td>OP Sepolia</td><td>ERC-20</td><td>t₁</td><td class="n">200</td><td class="n">29.32</td><td class="n">40.47</td><td class="n">0.56</td><td class="n">41.21</td></tr>
+  <tr><td></td><td></td><td>t₂</td><td class="n">200</td><td class="n">71.44</td><td class="n">203.83</td><td class="n">48.34</td><td class="n">215.28</td></tr>
+  <tr><td></td><td></td><td>t₃</td><td class="n">200</td><td class="n">605,452</td><td class="n">605,473</td><td class="n">605,218</td><td class="n">605,553</td></tr>
+</table>
+
+<p>The t₁ minima near 0.6 s are single-transaction runs; the medians near 30 s are
+batches of 100. Full-trust latency is dominated by how many transactions the
+sequencer is working through, not by the workload.</p>
+
+<figure>
+  <img src="../bench/analysis/figures/g1_latency_cdf.png" alt="Latency distributions">
+  <figcaption><strong>Figure 2.</strong> Cumulative distributions rather than
+  bars of means, because the tail is the interesting part. Shared logarithmic
+  axis, so the seven-day trustless value on the right is genuinely comparable
+  with the half-hour one on the left.</figcaption>
+</figure>
+
+<h2 class="break">3 · Cost</h2>
+
+<p>Every figure comes from the <code>gasUsed</code> and
+<code>effectiveGasPrice</code> on the L1 receipts of the batch commit and proof
+transactions — never from a gas estimate, which on zkSync overshoots actual usage
+by up to nine times.</p>
+
+<table class="grid">
+  <tr><th style="width:130px">Network</th><th style="width:110px">Workload</th>
+      <th class="n" style="width:120px">L1 cost / tx</th><th class="n" style="width:100px">L2 gas (median)</th>
+      <th class="n">achieved tx/s</th></tr>
+  <tr><td>zkSync Era</td><td>native</td><td class="n">$0.00137302</td><td class="n">83,513</td><td class="n">0.007</td></tr>
+  <tr><td>zkSync Era</td><td>ERC-20</td><td class="n">$0.00131244</td><td class="n">122,434</td><td class="n">0.003</td></tr>
+  <tr><td>OP Sepolia</td><td>native</td><td class="n">unavailable</td><td class="n">21,000</td><td class="n">0.008</td></tr>
+  <tr><td>OP Sepolia</td><td>ERC-20</td><td class="n">unavailable</td><td class="n">34,454</td><td class="n">0.004</td></tr>
+</table>
+
+<p><strong>OP's cost is reported unavailable rather than estimated.</strong> An OP
+Stack chain does not expose how many transactions share a batch without decoding
+the blob, so there is no denominator. A guess would have been worse than a gap.</p>
+
+<p><strong>L2 gas is not comparable across the two.</strong> zkSync's gas model
+folds pubdata into the gas figure and OP's does not, so 83,513 against 21,000 is
+not a fourfold difference in work. Only cost in ETH is comparable, and even that
+needs the L1 gas price recorded beside it — which every row carries.</p>
+
+<h3>Where a batch's cost goes</h3>
+
+<table class="grid">
+  <tr><th style="width:200px">Component</th><th class="n" style="width:130px">nanoETH / tx</th><th class="n">share</th></tr>
+  <tr><td>Batch posting (execution)</td><td class="n">556.9</td><td class="n">74.00%</td></tr>
+  <tr><td>Proof verification</td><td class="n">186.9</td><td class="n">24.83%</td></tr>
+  <tr><td>Blob data availability</td><td class="n">8.8</td><td class="n">1.17%</td></tr>
+</table>
+
+<div class="callout warn">
+  <div class="label">Do not quote the 1.17% as a mainnet figure</div>
+  <p>Blob data availability is nearly free here because Sepolia's blob market
+  sits at its price floor with almost no competition for blob space. On mainnet,
+  where blobs are contested, this term is far larger. It is a property of the
+  test environment, not of the rollup.</p>
+</div>
+
+<figure>
+  <img src="../bench/analysis/figures/g3_cost_breakdown.png" alt="Cost breakdown">
+  <figcaption><strong>Figure 3.</strong> Per-transaction settlement cost split
+  three ways, for one batch.</figcaption>
+</figure>
+
+<h2>4 · Cost falls with batch size</h2>
+
+<p>Not with <em>our</em> batch size — that turned out to be unmeasurable — but
+with the rollup's own. Across eight settled batches whose sizes the rollup chose
+for its own reasons:</p>
+
+<table class="grid">
+  <tr><th style="width:120px">Batch</th><th class="n" style="width:160px">transactions in it</th>
+      <th class="n">L1 cost per transaction</th></tr>
+  <tr><td>21625</td><td class="n">617</td><td class="n">1,075.93 nETH</td></tr>
+  <tr><td>21624</td><td class="n">754</td><td class="n">926.87 nETH</td></tr>
+  <tr><td>21623</td><td class="n">875</td><td class="n">752.54 nETH</td></tr>
+  <tr><td>21631</td><td class="n">934</td><td class="n">710.02 nETH</td></tr>
+  <tr><td>21632</td><td class="n">1,023</td><td class="n">679.37 nETH</td></tr>
+  <tr><td>21628</td><td class="n">1,361</td><td class="n">479.32 nETH</td></tr>
+  <tr><td>21626</td><td class="n">1,397</td><td class="n">472.92 nETH</td></tr>
+  <tr><td>21627</td><td class="n">1,737</td><td class="n">368.46 nETH</td></tr>
+</table>
+
+<p>A <strong>66% fall</strong> from the smallest batch to the largest, tracking
+1/n closely — which is what a fixed batch cost shared among more transactions
+looks like.</p>
+
+<figure>
+  <img src="../bench/analysis/figures/f3_batch_scaling.png" alt="Batch scaling">
+  <figcaption><strong>Figure 4.</strong> The grey curve is not a fit. It is what
+  an evenly shared fixed cost would look like, drawn so the closeness can be
+  judged without any modelling being implied.</figcaption>
+</figure>
+
+<h2>5 · How much results vary between days</h2>
+
+<p>Eleven comparisons across cells run on more than one day. <strong>Median
+divergence 13.3%, worst 65.7%.</strong> The split matters more than the headline:</p>
+
+<table class="grid">
+  <tr><th style="width:180px">Level</th><th>Day-to-day variation</th></tr>
+  <tr><td>Full trust (t₁)</td><td><strong>0.1% to 0.9%</strong> on small batches — highly reproducible</td></tr>
+  <tr><td>Partial trust (t₂)</td><td>20% to 66%</td></tr>
+  <tr><td>Trustless (t₃)</td><td>1% to 54%</td></tr>
+</table>
+
+<p>This is exactly the shape to expect. t₁ measures a sequencer accepting a
+transaction, which is a fast and fairly deterministic operation. t₂ and t₃ depend
+on where in a batch interval the submission happened to fall, which is close to
+arbitrary. <strong>Settlement medians are the ones to treat with caution</strong>,
+and this is the number that says how much.</p>
+
+<h2>6 · Grounded against production</h2>
+
+<p>Both mainnets observed read-only — sending nothing, spending nothing.</p>
+
+<table class="grid">
+  <tr><th style="width:230px">Measure</th><th class="n" style="width:150px">zkSync Era Mainnet</th><th class="n">OP Mainnet</th></tr>
+  <tr><td>batch seal / posting interval</td><td class="n">30.15 min</td><td class="n">4.40 min</td></tr>
+  <tr><td>L1 commit interval</td><td class="n">31.88 min</td><td class="n">—</td></tr>
+  <tr><td>commit → proof</td><td class="n"><strong>38.38 min</strong></td><td class="n">—</td></tr>
+  <tr><td>output proposal interval</td><td class="n">—</td><td class="n">60.20 min</td></tr>
+  <tr><td>proof maturity delay</td><td class="n">—</td><td class="n"><strong>7.00 days</strong></td></tr>
+  <tr><td>dispute game finality delay</td><td class="n">—</td><td class="n">3.50 days</td></tr>
+</table>
+
+<p>Two consequences for the report.</p>
+
+<p><strong>Mainnet proves about 3.4× slower than the testnet</strong> — 38.38
+minutes against 11.2 — so every testnet trustless figure understates production
+by a factor that can now be stated rather than gestured at.</p>
+
+<p><strong>OP Mainnet's proof maturity delay is 7.00 days, identical to OP
+Sepolia's.</strong> Testnets are widely assumed to shorten their challenge
+windows; this one does not. That confirms against production what the testnet
+reading suggested, and it is the strongest support for treating every optimistic
+t₃ as derived.</p>
+
+<h2 class="break">7 · Failures</h2>
+
+<p>27 of 1,275 transactions failed. They are in the dataset with reasons, and
+latency statistics count successes only.</p>
+
+<table class="grid">
+  <tr><th class="n" style="width:70px">count</th><th style="width:130px">outcome</th><th>reason</th></tr>
+  <tr><td class="n">24</td><td><code>timeout</code></td><td>No receipt within the 120 s deadline. Recorded as a failure with a reason, never as a very large latency</td></tr>
+  <tr><td class="n">3</td><td><code>rejected</code></td><td>HTTP 429 from the public OP Sepolia endpoint, when two submitters overlapped. Row written with <strong>no hash</strong></td></tr>
+</table>
+
+<p>Success rate <strong>97.9%</strong>, reported beside every latency figure.</p>
+
+<h2>8 · Threats to validity</h2>
+
+<p>Every limitation known at the time of writing. Several were discovered by
+measurement rather than anticipated.</p>
+
+<h3>Measurement</h3>
+<ul>
+  <li><strong>t₁ is an observation, not a chain fact.</strong> It is when a
+  receipt became visible to us, which exceeds the L2 block's own timestamp by a
+  median of 17.95 s on batched submissions. It is an upper bound on full-trust
+  latency. Both values are stored so the gap is visible.</li>
+  <li><strong>t₁ can never be finer than the polling interval</strong>, capped at
+  2 s here. A single transaction resolving in 0.6 s is measured at that
+  resolution.</li>
+  <li><strong>L1 block timestamps have second granularity and are set by the
+  proposer.</strong> Negligible against intervals of minutes, but real.</li>
+  <li><strong>Public RPC endpoints introduce variable latency</strong> outside
+  our control, and one of them was found serving state 38 days stale.</li>
+  <li><strong>Submission came from one machine in one geographic region</strong>,
+  with one account.</li>
+</ul>
+
+<h3>The optimistic side is weaker than the ZK side</h3>
+<ul>
+  <li><strong>t₂ on OP is estimated, not observed.</strong> An OP Stack chain
+  exposes no mapping from a transaction to the batch carrying it, so the batch is
+  matched by scanning the L1 forward from the L2 block's origin. <strong>16 of
+  519 OP rows (3%) have a t₂ within five seconds of submission</strong>, which is
+  implausibly fast given batches are posted every few minutes — those are almost
+  certainly matched to a batch that does not contain the transaction. The median
+  is not materially affected, but the minimum is meaningless and the field should
+  be read as an approximation with a few percent error.</li>
+  <li><strong>t₃ on OP is derived, not observed.</strong> It is a deadline
+  computed from a proposal timestamp plus a challenge period. No event occurs at
+  that moment and no transaction hash can be produced for it.</li>
+  <li><strong>L1 cost on OP is unavailable</strong>, for the same reason as t₂.</li>
+</ul>
+
+<h3>Scope</h3>
+<ul>
+  <li><strong>Peak throughput was not measured.</strong> Saturating a shared
+  public sequencer would degrade a service other people depend on and would
+  measure our own rate limits. Achieved throughput at a stated submission rate is
+  reported instead — and at 0.003 to 0.008 tx/s it reflects our submission
+  pattern, not any capacity of the networks.</li>
+  <li><strong>Proving time and cost are not measured</strong>, only the L1 gas of
+  verifying a proof. No GPU was available.</li>
+  <li><strong>Testnet is not mainnet.</strong> Proof cadence differs by 3.4×.
+  Costs are testnet L1 gas priced at a mainnet ETH rate, which is an illustration
+  rather than a measurement of what anyone paid.</li>
+  <li><strong>Settlement repetitions are still accumulating.</strong> F2 is at
+  29 of 60 repetitions. Percentiles on t₂ and t₃ will tighten.</li>
+  <li><strong>Blob DA cost is a Sepolia artefact</strong>, as noted in §3.</li>
+</ul>
+
+<h3>Things that cannot be measured this way at all</h3>
+<ul>
+  <li><strong>Per-transaction data-availability size.</strong> A blob costs
+  131,072 bytes whether filled or not, and a batch carries every user's
+  transactions. DA per transaction is a batch average identical across workloads.
+  The workload difference is real but appears in L2 gas: 83,513 against 122,434.</li>
+  <li><strong>Cost as a function of our own batch size.</strong> Seven runs of
+  sizes 1 to 50 all landed in one batch of 875 and cost exactly the same per
+  transaction. The denominator is the rollup's batch count, which we do not
+  control.</li>
+</ul>
+
+<h2>9 · How to check any number here</h2>
+
+<p>Every row carries the hashes that produced it, so no figure has to be taken on
+trust.</p>
+
+<ol>
+  <li>Open <code>bench/export/raw_transactions.csv</code> — one row per
+  transaction, all four absolute timestamps, both L1 hashes.</li>
+  <li>Pick any row. Open its <code>hash</code> in the L2 explorer and its
+  <code>l1_commit_tx</code> and <code>l1_prove_tx</code> in Etherscan.</li>
+  <li>The block timestamps on those two Ethereum transactions are t₂ and t₃.</li>
+  <li><code>bench/export/assumptions.txt</code> states the ETH rate, where it
+  came from and when, plus every declared limitation.</li>
+  <li>Each figure has a <code>.csv</code> beside it containing the numbers behind
+  it.</li>
+</ol>
+
+<pre>python -m bench.check_data     # asserts the rows describe something possible
+python -m bench.export         # regenerate every table
+python -m bench.analysis.figures</pre>
+
+<p>Latencies and prices are computed at export time from absolute timestamps and
+raw wei. Nothing in the stored rows depends on an assumption, which is why
+correcting the ETH rate — it had been wrong by a factor of two — cost one command
+rather than a repeat of the experiment.</p>
+
+</body>
+</html>
