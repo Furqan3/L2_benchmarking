@@ -15,18 +15,11 @@
 # Changing eth_usd must change every reported cost. That is D2's done-when.
 
 eth_usd:
-  rate: 3800.0
-  recorded_at: 2026-08-10T00:00:00Z
-  source: >
-    PLACEHOLDER - replace with a rate you actually looked up, and say where.
-    A round number is a giveaway that nobody checked. Any public spot price is
-    fine as long as this field names it and records the time it was read.
+  rate: 1878.57
+  recorded_at: '2026-08-11T03:35:05+00:00'
+  source: Mean of CoinGecko 1,878.60 and Coinbase 1,878.55, fetched 2026-08-11T03:35:05+00:00
+    by bench/fetch_price.py. Spread 0.00%.
+notes: 'Costs computed from testnet L1 gas priced at a mainnet ETH rate are an illustration,
+  not a measurement of what anyone paid. Say so wherever these figures appear.
 
-# The testnet ETH used here is worth nothing, so every dollar figure in this
-# study is what the same batch would have cost on mainnet at mainnet gas
-# prices - which these runs do not observe. Task F4 exists to measure real
-# mainnet gas so the testnet figures can be placed beside it honestly.
-notes: >
-  Costs computed from testnet L1 gas priced at a mainnet ETH rate are an
-  illustration, not a measurement of what anyone paid. Say so wherever these
-  figures appear.
+  '

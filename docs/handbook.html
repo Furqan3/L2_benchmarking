@@ -236,8 +236,8 @@ accept, <strong>25.17 minutes waiting for the batch to be posted</strong>, and
 11.20 minutes from commit to proof. The dominant cost of trustless finality on
 this rollup is not proving — it is waiting for a batch to seal.</p>
 
-<p>Cost per transaction: <strong>$0.00285965</strong> at an assumed ETH price of
-$3,800, derived from the actual L1 receipts (commit 0.000495 ETH, proof 0.000164
+<p>Cost per transaction: <strong>$0.00137335</strong> at a fetched ETH price of
+$1,878.57, derived from the actual L1 receipts (commit 0.000495 ETH, proof 0.000164
 ETH) divided by the 875 transactions sharing the batch.</p>
 
 <div class="callout">
@@ -842,6 +842,19 @@ appearance of progress with no mechanism behind it. Unattended collection is now
 an hourly cron tick that submits at most one overdue cell. Worth recording
 because the failure mode was invisible from the inside: every individual
 component was working correctly.</p>
+
+<h4>A placeholder that survived into every dollar figure</h4>
+<p>The ETH/USD rate began as a hand-entered 3800.0, marked PLACEHOLDER in the
+config and printed verbatim in the assumptions file so it could not pass
+unnoticed. It was wrong by more than a factor of two — the real rate at the time
+of writing is 1878.57, agreed to within 0.003% by two independent sources — and
+every dollar figure derived from it was overstated by that factor for a day.</p>
+<p>The ETH costs themselves were never affected, because they come from L1
+receipts, and no experiment had to be repeated: the config is read at analysis
+time, so correcting it was a re-export. That separation is the only reason this
+was cheap. The rate is now fetched by a script that records the sources, the
+timestamp and the spread between them, because a typed number carries none of
+those and cannot be checked by anybody later.</p>
 
 <h4>Full-trust latency depends on what you mean by it</h4>
 <p>Measured t₁ exceeds the L2 block's own timestamp by a median of 17.95 s for
