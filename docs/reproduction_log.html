@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>L2 Benchmark — Reproduction Log</title>
+<style>
+  @page {
+    size: A4; margin: 19mm 16mm 17mm 16mm;
+    @bottom-center { content: counter(page); font-family: Georgia, serif; font-size: 8.5pt; color: #8a8a8a; }
+    @bottom-right { content: "Reproduction Log · Project 50081"; font-family: Georgia, serif; font-size: 7.5pt; color: #a8a8a8; }
+  }
+  @page :first { @bottom-center { content: ""; } @bottom-right { content: ""; } }
+
+  html { font-size: 10pt; }
+  body { font-family: Georgia, "Times New Roman", serif; color: #1c1c1c; line-height: 1.48; }
+
+  h1 { font-size: 21pt; line-height: 1.15; margin: 0 0 6px 0; font-weight: normal; letter-spacing: -0.3px; }
+  h2 { font-size: 13pt; font-weight: normal; margin: 22px 0 8px 0; padding-bottom: 4px;
+       border-bottom: 1.2px solid #1c1c1c; page-break-after: avoid; }
+  h3 { font-size: 10.4pt; margin: 15px 0 5px 0; font-weight: bold; page-break-after: avoid; }
+  p { margin: 0 0 7px 0; }
+  ul, ol { margin: 0 0 8px 0; padding-left: 18px; }
+  li { margin-bottom: 3px; }
+
+  .eyebrow { font-family: "DejaVu Sans", Helvetica, sans-serif; font-size: 7.5pt;
+             letter-spacing: 2.4px; text-transform: uppercase; color: #6b6b6b; margin-bottom: 18px; }
+  .lede { font-size: 11.2pt; color: #3a3a3a; line-height: 1.45; margin-bottom: 20px; }
+
+  table.grid { width: 100%; border-collapse: collapse; margin: 9px 0 13px 0; font-size: 8.4pt; }
+  table.grid th { text-align: left; font-family: "DejaVu Sans", Helvetica, sans-serif; font-size: 7.3pt;
+                  text-transform: uppercase; letter-spacing: 0.7px; color: #6b6b6b;
+                  border-bottom: 1px solid #1c1c1c; padding: 5px 8px 4px 0; font-weight: normal; }
+  table.grid td { padding: 5px 8px 5px 0; border-bottom: 0.5px solid #e8e8e8; vertical-align: top; }
+  table.grid tr { page-break-inside: avoid; }
+  table.grid code { background: none; padding: 0; font-size: 8pt; }
+
+  code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.1pt;
+         background: #f4f4f2; padding: 0.5px 3px; border-radius: 2px; word-break: break-all; }
+  pre { font-family: "DejaVu Sans Mono", monospace; font-size: 7.6pt; background: #fbfbfa;
+        border-left: 2.5px solid #c8c8c4; padding: 9px 11px; margin: 8px 0 11px 0;
+        line-height: 1.42; white-space: pre-wrap; word-break: break-word; page-break-inside: avoid; }
+
+  .callout { border: 0.8px solid #1c1c1c; padding: 9px 12px; margin: 11px 0; page-break-inside: avoid; }
+  .callout .label { font-family: "DejaVu Sans", Helvetica, sans-serif; font-size: 7.3pt;
+                    letter-spacing: 1.8px; text-transform: uppercase; margin-bottom: 5px; }
+  .callout p:last-child { margin-bottom: 0; }
+  .gap { border: 0.8px solid #b45309; background: #fffbf5; }
+  .gap .label { color: #b45309; }
+
+  .break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<div class="eyebrow">Reproduction Log</div>
+
+<h1>Every Step, Exactly<br>As It Was Done</h1>
+
+<p class="lede">The commands, the URLs, the amounts, the waiting times, and the
+things that went wrong — written so that somebody with an empty machine can
+arrive at the same results.</p>
+
+<table class="grid">
+  <tr><th style="width:120px">Field</th><th>Value</th></tr>
+  <tr><td>Project</td><td>50081 — L2 finality benchmark, Mitacs Globalink 2026</td></tr>
+  <tr><td>Machine</td><td>Linux, Python 3.10.12 via pyenv</td></tr>
+  <tr><td>Test account</td><td><code>0xAEb018EdC9cA4D70D9488FF2d38F74dd81Ad3122</code> — testnet only, created 7 Aug 2026</td></tr>
+  <tr><td>Period</td><td>7 Aug 2026 (setup) to 11 Aug 2026 (analysis)</td></tr>
+  <tr><td>Outcome</td><td>1,265 transactions, 97.9% success, two rollups, four chains observed</td></tr>
+</table>
+
+<div class="callout">
+  <div class="label">Nothing secret appears in this document</div>
+  <p>The private key and the Infura project ID are in <code>.env</code>, which is
+  gitignored and is not reproduced here. Where a URL contains a key, it is shown
+  with a <code>&lt;placeholder&gt;</code>. Substitute your own.</p>
+</div>
+
+<h2>1 · Environment</h2>
+
+<p>Python 3.10.12 under pyenv. <code>.python-version</code> activates the
+environment automatically on entering the directory.</p>
+
+<pre>pyenv virtualenv 3.10.12 l2_bench
+pyenv local l2_bench
+pip install -r requirements.txt</pre>
+
+<p>Or without pyenv:</p>
+
+<pre>python -m venv venv &amp;&amp; source venv/bin/activate
+pip install -r requirements.txt</pre>
+
+<p>Every version is pinned with <code>==</code>, not <code>&gt;=</code>, so the
+environment can be recreated exactly. The ones that matter:</p>
+
+<table class="grid">
+  <tr><th style="width:150px">Package</th><th style="width:90px">Version</th><th>Needed for</th></tr>
+  <tr><td><code>web3</code></td><td>7.16.0</td><td>Everything. Note v7 names the signed field <code>raw_transaction</code>; v6 called it <code>rawTransaction</code></td></tr>
+  <tr><td><code>eth-account</code></td><td>0.13.7</td><td>Key handling and signing</td></tr>
+  <tr><td><code>py-solc-x</code></td><td>2.0.5</td><td>Compiling the workload token; downloads solc itself on first use</td></tr>
+  <tr><td><code>pandas</code>, <code>matplotlib</code></td><td>2.3.3, 3.10.9</td><td>Analysis and figures</td></tr>
+  <tr><td><code>weasyprint</code>, <code>CairoSVG</code></td><td>69.0, 2.9.0</td><td>Rendering these documents and the diagrams</td></tr>
+</table>
+
+<h2>2 · Creating the wallet</h2>
+
+<pre>python -m bench.create_wallet</pre>
+
+<p>Generates one account, writes the private key to <code>.env</code> at mode
+<code>600</code>, and the address to <code>bench/configs/accounts.yaml</code>,
+which <em>is</em> committed so every result traces back to the account that
+produced it. It refuses to overwrite an existing key.</p>
+
+<p>One account is used on every network. EVM addresses are compatible across
+chains, so this keeps the records simple. Verify at any time with:</p>
+
+<pre>python -m bench.core.wallet
+# 0xAEb018EdC9cA4D70D9488FF2d38F74dd81Ad3122</pre>
+
+<p>That command fails loudly if the key in <code>.env</code> derives a different
+address from the one recorded in config — which would mean every result was
+untraceable.</p>
+
+<h2>3 · Getting testnet funds</h2>
+
+<p>This is the step that blocks everything else, and the one with the most
+friction. Faucets refuse, rate-limit and demand accounts you may not have, so
+the strategy is to request from several at once rather than in sequence.</p>
+
+<h3>Ethereum Sepolia — fund this first</h3>
+
+<p>Everything else is bridged from here, so it is the only faucet you strictly
+need.</p>
+
+<table class="grid">
+  <tr><th style="width:170px">Faucet</th><th style="width:210px">URL</th><th>Requires</th></tr>
+  <tr><td>PoW faucet (pk910)</td><td><code>sepolia-faucet.pk910.de</code></td><td><strong>Nothing.</strong> The browser mines for a few minutes. Start here</td></tr>
+  <tr><td>Google Cloud Web3</td><td><code>cloud.google.com/application/web3/faucet/ethereum/sepolia</code></td><td>A Google account; claimable daily</td></tr>
+  <tr><td>Alchemy</td><td><code>sepoliafaucet.com</code></td><td>~0.001 ETH on Ethereum mainnet</td></tr>
+  <tr><td>Chainlink</td><td><code>faucets.chain.link/sepolia</code></td><td>A funded mainnet account</td></tr>
+</table>
+
+<p>The list is in <code>bench/configs/networks.yaml</code> and can be printed
+without opening the file:</p>
+
+<pre>python -m bench.check_funds --faucets</pre>
+
+<div class="callout gap">
+  <div class="label">Gap — needs filling in by the intern</div>
+  <p>Sepolia was funded on 7 August, before this log began, and
+  <code>accounts.yaml</code> still records the faucet as <code>TODO</code>. The
+  same is true of OP Sepolia, which was funded on 10 August. Which faucet paid,
+  and when, belongs in the report's experimental setup — fill in the
+  <code>faucet:</code> fields in <code>bench/configs/accounts.yaml</code> from
+  memory or browser history while it is still recoverable.</p>
+</div>
+
+<h3>Checking what actually arrived</h3>
+
+<pre>python -m bench.check_funds --priority</pre>
+
+<p>Prints chain ID, current block, balance and status for each network, and then
+the specific next action for whatever is missing. Exit status is <code>0</code>
+when every required network is funded, so it can gate a script rather than being
+read by eye.</p>
+
+<pre>account  0xAEb018EdC9cA4D70D9488FF2d38F74dd81Ad3122   created 2026-08-07
+
+network                         chain          block    balance (ETH)  status
+--------------------------------------------------------------------------------
+Ethereum Sepolia             11155111     11,458,133         0.532559  funded
+zkSync Era Sepolia                300      8,084,219         0.049853  funded
+OP Sepolia                   11155420     47,277,404         0.009995  funded</pre>
+
+<h2>4 · Bridging to the L2s</h2>
+
+<p>With Sepolia funded, bridging is far easier than fighting L2 faucets, most of
+which demand a mainnet balance anyway.</p>
+
+<h3>zkSync Era Sepolia — what was actually done</h3>
+
+<ol>
+  <li>Import the test account into MetaMask using the key from <code>.env</code>.
+  It is a throwaway testnet key that has never held real funds, so this is safe —
+  but do not reuse that browser profile for anything real.</li>
+  <li>Open <code>portal.zksync.io/bridge/?network=sepolia</code></li>
+  <li>Connect, and confirm the network reads <strong>zkSync Era Sepolia, chain
+  300</strong>.</li>
+  <li>Bridge <strong>0.05 ETH</strong>.</li>
+  <li>Do not watch it. It takes roughly 15 minutes.</li>
+</ol>
+
+<p><strong>Recorded outcome.</strong> Sepolia fell from 0.532979 to 0.482559 — the
+0.05 plus about 0.0004 in L1 gas. It arrived on the L2 as <strong>0.050102</strong>,
+slightly <em>more</em> than was sent, because zkSync refunds the unused portion of
+the L2 gas paid up front with the deposit.</p>
+
+<h3>How much to bridge, and why 0.05</h3>
+
+<table class="grid">
+  <tr><th style="width:280px">Item</th><th>Cost</th></tr>
+  <tr><td>One L2 transfer at 0.025 gwei</td><td>~0.0000005 ETH</td></tr>
+  <tr><td>The full ~550-transaction experiment matrix</td><td>~0.001 ETH</td></tr>
+  <tr><td>Deploying the ERC-20 once</td><td>~0.00013 ETH</td></tr>
+  <tr><td><strong>0.05 bridged</strong></td><td><strong>~50x the matrix, with headroom for a gas spike</strong></td></tr>
+</table>
+
+<p>0.02 would have been sufficient. The only cost of an under-bridge is another
+15-minute round trip in the middle of the work, so overshooting is cheap.</p>
+
+<h3>OP Sepolia</h3>
+
+<p>The official bridge at <code>app.optimism.io/bridge</code> did not work during
+this project. Alternatives, best first:</p>
+
+<table class="grid">
+  <tr><th style="width:190px">Route</th><th style="width:200px">URL</th><th>Note</th></tr>
+  <tr><td>Superchain faucet</td><td><code>console.optimism.io/faucet</code></td><td>Gives OP Sepolia ETH <strong>directly</strong> — no bridging. Auth via GitHub, or holds-mainnet-ETH</td></tr>
+  <tr><td>Superbridge</td><td><code>superbridge.app/op-sepolia</code></td><td>The most reliable third-party UI for OP-stack testnets</td></tr>
+  <tr><td>Brid.gg</td><td><code>testnet.brid.gg/op-sepolia</code></td><td>Same job, different frontend</td></tr>
+  <tr><td>Direct deposit</td><td>OptimismPortal on Sepolia</td><td>A plain ETH transfer to the portal credits the same address on the L2. Verify the address from Optimism's docs first — sending to the wrong contract loses the funds</td></tr>
+</table>
+
+<p>0.01 ETH arrived, which is ample: an OP Sepolia native transfer costs about
+0.00000002 ETH.</p>
+
+<h2 class="break">5 · RPC endpoints</h2>
+
+<p>Public endpoints throttle. Phase C queries wide block ranges and meets those
+limits quickly, so a free provider key is worth registering before it is needed.</p>
+
+<p><strong>Alchemy or Infura?</strong> Both cover Sepolia, which is what the
+settlement queries need. Alchemy additionally covers zkSync Era Sepolia, OP
+Sepolia and Arbitrum Sepolia under one key, so a single signup can replace every
+public endpoint. Infura was used here and works.</p>
+
+<p>Set the override in <code>.env</code> — the variable is
+<code>BENCH_RPC_</code> plus the network key in upper case:</p>
+
+<pre>BENCH_RPC_SEPOLIA=https://sepolia.infura.io/v3/&lt;your-project-id&gt;</pre>
+
+<div class="callout">
+  <div class="label">The mistake that cost an hour</div>
+  <p>The project ID was pasted on its own, without the URL around it. That
+  produced a <code>MissingSchema</code> traceback from deep inside
+  <code>requests</code> that said nothing about which variable was wrong. The
+  loader now rejects a non-URL override by name, with the correct form printed.
+  It needs the <strong>whole endpoint</strong>, not just the key.</p>
+</div>
+
+<p>Also worth knowing: on the Infura free tier, a broad <code>eth_getLogs</code>
+returns <code>service temporarily unavailable</code> rather than a rate-limit
+error. Settlement queries must stay within tight block ranges.</p>
+
+<h2>6 · Deploying the workload token</h2>
+
+<p>Two workloads are measured: a native transfer, which needs nothing, and an
+ERC-20 transfer, which needs a token deployed on each L2.</p>
+
+<h3>Getting genuine OpenZeppelin sources</h3>
+
+<p>Rather than writing an ERC-20, the real OpenZeppelin sources were vendored at
+a pinned version and committed:</p>
+
+<pre>npm pack @openzeppelin/contracts@5.0.2
+tar xzf openzeppelin-contracts-5.0.2.tgz
+# copy into bench/contracts/vendor/@openzeppelin/contracts/ :
+#   token/ERC20/ERC20.sol
+#   token/ERC20/IERC20.sol
+#   token/ERC20/extensions/IERC20Metadata.sol
+#   utils/Context.sol
+#   interfaces/draft-IERC6093.sol</pre>
+
+<p><code>bench/contracts/BenchToken.sol</code> is then twenty lines that inherit
+from it — no hooks, no pausing, no permit. Anything unusual in the contract would
+appear in the gas and DA figures as though it were a property of the rollup.</p>
+
+<h3>Deploying</h3>
+
+<pre>python -m bench.deploy_token -n zksync_sepolia --dry-run   # will the chain take it?
+python -m bench.deploy_token -n zksync_sepolia --record    # deploy, write the address</pre>
+
+<p><code>--dry-run</code> asks the node to estimate the deployment. If the
+estimate succeeds, the chain accepts the bytecode. This is how the question "does
+zkSync need its own compiler?" was answered by measurement rather than
+assumption.</p>
+
+<p><strong>Result:</strong> zkSync Era Sepolia <em>does</em> accept ordinary EVM
+bytecode — its EVM interpreter is enabled — so no <code>zksolc</code> toolchain
+was needed. Both deployments landed at the <em>same address</em>,
+<code>0xA1b9fdb1599fd89250B3463A1daA96c32C4BD958</code>, because contract
+addresses derive from sender plus nonce and both were nonce 0 on their chain.
+That is a coincidence, not a design.</p>
+
+<table class="grid">
+  <tr><th style="width:180px">Network</th><th style="width:130px">Gas estimated</th><th style="width:120px">Gas used</th><th>Cost</th></tr>
+  <tr><td>zkSync Era Sepolia</td><td>5,386,132</td><td>590,512</td><td>0.00013465 ETH</td></tr>
+  <tr><td>OP Sepolia</td><td>555,635</td><td>550,102</td><td>0.00000056 ETH</td></tr>
+</table>
+
+<p>zkSync over-estimated by a factor of nine; OP was accurate. This is why every
+cost figure in the study comes from a receipt and never from an estimate.</p>
+
+<h2>7 · Finding the L1 contracts</h2>
+
+<p>Two of the three timestamps are read from Ethereum, so the rollup's L1
+contracts must be located. Each was found differently, and one of them was found
+wrongly first.</p>
+
+<h3>zkSync Era Sepolia</h3>
+
+<p>Asked the chain itself rather than copying an address from documentation:</p>
+
+<pre>w3.provider.make_request("zks_getMainContract", [])
+# 0x9a6de0f62aa270a8bcb1e2610078650d539b1ef9</pre>
+
+<div class="callout">
+  <div class="label">The address that looked right and was not</div>
+  <p>The first candidate was <code>0xedf4B1C6AF6520bb76826525adef7e0e09Af2c8d</code>,
+  taken from the <code>to</code> field of an actual batch-posting transaction —
+  which seems authoritative until every getter on it reverts. That address is the
+  <strong>ValidatorTimelock</strong>: batches are submitted <em>through</em> it,
+  so it is what the commit transaction points at, but it holds no batch state.
+  A log query aimed there finds nothing and looks like a broken query rather than
+  a wrong address. Both are now recorded in config.</p>
+</div>
+
+<p>The ABI came from Matter Labs' published package, because Etherscan's V1 API
+is retired and V2 requires a key:</p>
+
+<pre>npm pack zksync-ethers@6
+# package/abi/IZkSyncHyperchain.json  ->  bench/abis/zksync_hyperchain.json</pre>
+
+<h3>OP Sepolia</h3>
+
+<p>The batcher address is stored on the L2 itself, at the <code>L1Block</code>
+predeploy <code>0x4200000000000000000000000000000000000015</code>. Reading
+<code>batcherHash()</code> gives
+<code>0x8f23BB38F531600e5d8FDDaAEC41F13FaB46E98c</code>. Scanning Sepolia for that
+address's transactions showed them all going to one inbox,
+<code>0xff00000000000000000000000000000011155420</code> — which matches the
+superchain registry, a useful independent confirmation.</p>
+
+<p>The remaining addresses came from the registry:</p>
+
+<pre>https://raw.githubusercontent.com/ethereum-optimism/superchain-registry/main/superchain/configs/sepolia/op.toml</pre>
+
+<table class="grid">
+  <tr><th style="width:190px">Contract</th><th>Address on Sepolia</th></tr>
+  <tr><td>Batch inbox</td><td><code>0xff00000000000000000000000000000011155420</code></td></tr>
+  <tr><td>Batcher (EOA)</td><td><code>0x8f23BB38F531600e5d8FDDaAEC41F13FaB46E98c</code></td></tr>
+  <tr><td>DisputeGameFactory</td><td><code>0x05F9613aDB30026FFd634f38e5C4dFd30a197Fa1</code></td></tr>
+  <tr><td>OptimismPortal</td><td><code>0x16Fc5058F25648194471939df75CF27A2fdC48BC</code></td></tr>
+</table>
+
+<h2>8 · Running experiments</h2>
+
+<h3>Before the first run</h3>
+
+<pre>python -m bench.check_workloads --all     # gas-estimate both workloads, send nothing
+python -m bench.fetch_price               # record the ETH/USD rate with its sources</pre>
+
+<h3>A single run</h3>
+
+<pre>python -m bench.submit_run -n zksync_sepolia -w native_transfer -c 50</pre>
+
+<p>Sends 50 transactions, records t₀ and t₁, writes
+<code>bench/results/&lt;run_id&gt;.jsonl</code>, and exits within minutes. It never
+waits for settlement.</p>
+
+<h3>Filling in settlement</h3>
+
+<pre>python -m bench.resolve_run          # one pass
+python -m bench.resolve_run --watch 300   # repeat until nothing is outstanding</pre>
+
+<p>Safe to run repeatedly and safe to kill. Settlement took roughly 25 minutes to
+t₂ and 37 minutes to t₃ on zkSync Sepolia; on OP Sepolia t₃ is a computed
+deadline seven days out and will never be observed.</p>
+
+<h3>The matrix</h3>
+
+<pre>python -m bench.run_matrix --plan     # the checklist
+python -m bench.run_matrix --next     # run the next due cell, then stop
+python -m bench.run_matrix --paired -w native_transfer -c 50   # both rollups, back to back</pre>
+
+<h3>Unattended</h3>
+
+<pre>crontab -e
+# then add:
+17 * * * * /home/unk/projects/l2_benchmarking/bench/collect.sh</pre>
+
+<p>Each tick submits at most one overdue cell, resolves what has settled, checks
+the invariants, and exits. The 60-minute gap between repetitions of one cell is
+enforced inside <code>run_matrix</code>, not by cron, so a tick that finds nothing
+due simply exits.</p>
+
+<h2>9 · Analysis</h2>
+
+<pre>python -m bench.export                    # raw CSV, summary, assumptions, comparison
+python -m bench.analysis.figures          # the four figures, each with a CSV
+python -m bench.analysis.reproducibility  # day-to-day variation
+python -m bench.check_data                # are the rows possible?
+python -m bench.check_config              # does every setting do something?
+python -m bench.observe_mainnet           # production cadence, read-only
+python docs/build_handbook.py             # regenerate these documents</pre>
+
+<h2 class="break">10 · Everything that went wrong</h2>
+
+<p>Each of these cost real time. They are the most useful part of this document.</p>
+
+<table class="grid">
+  <tr><th style="width:180px">Symptom</th><th style="width:230px">Cause</th><th>Fix</th></tr>
+  <tr><td><code>MissingSchema</code> from inside requests</td><td>Infura project ID pasted without the URL around it</td><td>Use the full endpoint. The loader now rejects a non-URL override by name</td></tr>
+  <tr><td><code>execution reverted</code>, no reason, only on zkSync</td><td>Transfers to <code>0x…dEaD</code>. That address is 57,005, inside the range zkSync reserves for system contracts</td><td>Use a recipient above ~0x20000. Estimates fine on Sepolia, fails only on the rollup</td></tr>
+  <tr><td><code>gas required exceeds allowance (1)</code></td><td>A placeholder <code>gas: 1</code> left on the dict passed to <code>estimate_gas</code>. Geth reads it as the simulation allowance; zkSync ignores it</td><td>Strip <code>gas</code> before estimating</td></tr>
+  <tr><td>Every getter on the L1 contract reverts</td><td>Using the ValidatorTimelock instead of the diamond proxy</td><td><code>zks_getMainContract</code></td></tr>
+  <tr><td>t₃ null for hours on zkSync</td><td><code>zks_getTransactionDetails</code> lags the per-batch view by tens of minutes</td><td>Read settlement per batch via <code>zks_getL1BatchDetails</code></td></tr>
+  <tr><td>t₂ nine seconds <em>before</em> t₀</td><td>Scanning for OP's batch from the L2 block's L1 origin, which lags the head by a sequencer window</td><td>Anchor the scan by timestamp; refuse any settlement time earlier than t₀</td></tr>
+  <tr><td>196 rows with t₃ 209 days in the past</td><td>Binary-searching the dispute game factory, which is <strong>not</strong> ordered by L2 block, and not filtering by <code>gameType</code></td><td>Scan backwards from the newest game, filtered to the portal's <code>respectedGameType</code></td></tr>
+  <tr><td>HTTP 429 mid-batch</td><td>Two submitters against one public endpoint</td><td>Retry reads with backoff. <strong>Never</strong> retry <code>eth_sendRawTransaction</code></td></tr>
+  <tr><td>Every dollar figure roughly double</td><td>The ETH rate was a hand-typed <code>3800.0</code> placeholder; the real rate was 1,878.57</td><td>Fetch it, record the sources and the timestamp. Prices apply at analysis time, so this was a re-export, not a re-run</td></tr>
+  <tr><td>A network that answers correctly but has no recent blocks</td><td>The public Polygon zkEVM Cardona endpoint was serving state 38 days old</td><td>Compare the head block's timestamp against the wall clock</td></tr>
+</table>
+
+<h2>11 · Things that cannot be measured this way</h2>
+
+<p>Recording these saves somebody else the same discovery.</p>
+
+<ul>
+  <li><strong>Per-transaction data-availability size.</strong> A blob costs
+  131,072 bytes whether the rollup fills it or not, and the batch carries every
+  user's transactions. At these volumes DA per transaction is a batch average
+  that does not vary with workload.</li>
+  <li><strong>Cost as a function of <em>our</em> batch size.</strong> Seven runs
+  of sizes 1 to 50 all landed in one batch of 875 and cost exactly the same per
+  transaction. The denominator is the rollup's batch count, which we do not
+  control. The rollup's own variation does answer it: across eight batches from
+  617 to 1,737 transactions, cost per transaction falls 66%.</li>
+  <li><strong>Observed trustless finality on an optimistic rollup.</strong> OP
+  Sepolia's <code>proofMaturityDelaySeconds</code> is 604,800 — a full seven days,
+  identical to OP Mainnet. Testnets are widely assumed to shorten this. This one
+  does not, so t₃ there is always a computed deadline.</li>
+  <li><strong>Peak throughput.</strong> Saturating a shared public sequencer
+  would degrade a service other people depend on, and would measure our own rate
+  limits rather than the system.</li>
+</ul>
+
+<h2>12 · Timeline as it actually happened</h2>
+
+<table class="grid">
+  <tr><th style="width:110px">When</th><th>What</th></tr>
+  <tr><td>7 Aug, 15:49</td><td>Repository, wallet, network config, funding checker (A1–A4)</td></tr>
+  <tr><td>7 Aug, 17:44</td><td>First transaction sent by hand on Sepolia (A5)</td></tr>
+  <tr><td>10 Aug, 13:01</td><td>Workloads defined, token deployed on zkSync (B1)</td></tr>
+  <tr><td>10 Aug, 13:23</td><td>Submission, nonces, t₁, failure handling (B2–B5)</td></tr>
+  <tr><td>10 Aug, 13:49</td><td>OP Sepolia funded, its token deployed</td></tr>
+  <tr><td>10 Aug, 14:01</td><td>Settlement mapping and t₂ (C1–C6)</td></tr>
+  <tr><td>10 Aug, 14:15</td><td>Export, real L1 costs, DA, throughput (D1–D5) — minimum viable deliverable</td></tr>
+  <tr><td>10 Aug, 15:05</td><td>Optimistic rollup and challenge-window model (E1, E2)</td></tr>
+  <tr><td>10 Aug, 15:21</td><td>Experiment matrix, paired run, mainnet observation (F1, F4, E3)</td></tr>
+  <tr><td>10 Aug, 15:29</td><td>Figures (G1–G3)</td></tr>
+  <tr><td>10 Aug, 15:38</td><td>Hourly collection scheduled (F2 begins)</td></tr>
+  <tr><td>11 Aug, 08:30</td><td>Batch scaling and reproducibility after 18 unattended ticks (F3, G4)</td></tr>
+  <tr><td>11 Aug, 08:36</td><td>ETH rate corrected; every cost figure re-derived</td></tr>
+</table>
+
+<p>Roughly two working days of hands-on effort, plus overnight collection. The
+long pole was never the code — it was waiting for settlement, which is precisely
+why submission and resolution were separated.</p>
+
+</body>
+</html>
