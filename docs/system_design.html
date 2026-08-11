@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>L2 Benchmark — System Design</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 17mm 18mm 17mm;
+    @bottom-center { content: counter(page); font-family: Georgia, serif; font-size: 8.5pt; color: #8a8a8a; }
+    @bottom-right { content: "System Design · Project 50081"; font-family: Georgia, serif; font-size: 7.5pt; color: #a8a8a8; }
+  }
+  @page :first { @bottom-center { content: ""; } @bottom-right { content: ""; } }
+
+  html { font-size: 10.2pt; }
+  body { font-family: Georgia, "Times New Roman", serif; color: #1c1c1c; line-height: 1.5; }
+
+  h1 { font-size: 21pt; line-height: 1.15; margin: 0 0 6px 0; font-weight: normal; letter-spacing: -0.3px; }
+  h2 { font-size: 13.5pt; font-weight: normal; margin: 24px 0 9px 0;
+       padding-bottom: 4px; border-bottom: 1.2px solid #1c1c1c; page-break-after: avoid; }
+  h3 { font-size: 10.6pt; margin: 16px 0 5px 0; font-weight: bold; page-break-after: avoid; }
+  p { margin: 0 0 8px 0; }
+  ul, ol { margin: 0 0 9px 0; padding-left: 18px; }
+  li { margin-bottom: 4px; }
+
+  .eyebrow { font-family: "DejaVu Sans", Helvetica, sans-serif; font-size: 7.5pt;
+             letter-spacing: 2.4px; text-transform: uppercase; color: #6b6b6b; margin-bottom: 20px; }
+  .lede { font-size: 11.4pt; color: #3a3a3a; line-height: 1.45; margin-bottom: 22px; }
+
+  .meta { width: 100%; border-collapse: collapse; margin: 22px 0; font-size: 9pt; }
+  .meta td { padding: 5px 0; vertical-align: top; border-bottom: 0.5px solid #e2e2e2; }
+  .meta td:first-child { width: 112px; color: #6b6b6b; font-family: "DejaVu Sans", Helvetica, sans-serif;
+                          font-size: 8pt; text-transform: uppercase; letter-spacing: 0.7px; padding-top: 7px; }
+
+  table.grid { width: 100%; border-collapse: collapse; margin: 10px 0 14px 0; font-size: 8.5pt; }
+  table.grid th { text-align: left; font-family: "DejaVu Sans", Helvetica, sans-serif; font-size: 7.4pt;
+                  text-transform: uppercase; letter-spacing: 0.7px; color: #6b6b6b;
+                  border-bottom: 1px solid #1c1c1c; padding: 5px 8px 4px 0; font-weight: normal; }
+  table.grid td { padding: 5px 8px 5px 0; border-bottom: 0.5px solid #e8e8e8; vertical-align: top; }
+  table.grid tr { page-break-inside: avoid; }
+  table.grid code { background: none; padding: 0; }
+
+  code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.2pt;
+         background: #f4f4f2; padding: 0.5px 3px; border-radius: 2px; }
+  pre { font-family: "DejaVu Sans Mono", monospace; font-size: 7.5pt; background: #fbfbfa;
+        border-left: 2.5px solid #c8c8c4; padding: 10px 12px; margin: 9px 0 12px 0;
+        line-height: 1.4; white-space: pre-wrap; page-break-inside: avoid; }
+
+  .step { margin: 0 0 9px 0; padding-left: 30px; position: relative; page-break-inside: avoid; }
+  .step .n { position: absolute; left: 0; top: 0; font-family: "DejaVu Sans", Helvetica, sans-serif;
+             font-size: 8pt; font-weight: bold; color: #6b6b6b; }
+  .step .what { font-weight: bold; }
+
+  .callout { border: 0.8px solid #1c1c1c; padding: 10px 13px; margin: 12px 0; page-break-inside: avoid; }
+  .callout .label { font-family: "DejaVu Sans", Helvetica, sans-serif; font-size: 7.4pt;
+                    letter-spacing: 1.8px; text-transform: uppercase; margin-bottom: 5px; }
+  .callout p:last-child { margin-bottom: 0; }
+  .break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<div class="eyebrow">System Design</div>
+
+<h1>How the L2 Finality<br>Benchmark Works</h1>
+
+<p class="lede">Every component, what it does, what it hands to the next one, and
+the exact order things happen in.</p>
+
+<table class="meta">
+  <tr><td>Project</td><td>50081 — L2 finality benchmark, Mitacs Globalink 2026</td></tr>
+  <tr><td>Purpose</td><td>Measure when an L2 transaction becomes final, at three levels of trust, and what it cost</td></tr>
+  <tr><td>Approach</td><td>Observational. Submit to public networks, read public evidence, host nothing</td></tr>
+  <tr><td>Language</td><td>Python 3.10, web3.py 7.16</td></tr>
+  <tr><td>Scale</td><td>~2,400 lines across 21 modules</td></tr>
+</table>
+
+<h2>1 · The one idea the whole system rests on</h2>
+
+<p>A transaction on a Layer 2 becomes "final" three separate times, and they can
+be hours apart.</p>
+
+<table class="grid">
+  <tr><th style="width:110px">Level</th><th style="width:200px">Final when</th><th>Who to trust</th></tr>
+  <tr><td><strong>t₁</strong> full trust</td><td>the sequencer says yes</td><td>the rollup operator</td></tr>
+  <tr><td><strong>t₂</strong> partial trust</td><td>the batch is posted to Ethereum</td><td>the operator, a bit less</td></tr>
+  <tr><td><strong>t₃</strong> trustless</td><td>the batch is proven, or its challenge window closes</td><td>nobody</td></tr>
+</table>
+
+<p><strong>t₂ and t₃ are recorded on Ethereum, not on the rollup.</strong> The
+rollup operator must publish that evidence publicly for the system to work at
+all. So the benchmark does not need to run a rollup — it submits a transaction,
+then reads Ethereum to find out what happened to it.</p>
+
+<p>That single fact is why the system looks the way it does: it is a
+<em>submitter</em> and a <em>reader</em>, and they are separate programs.</p>
+
+<h2>2 · The big picture</h2>
+
+<pre>
+   YOU                      THE FRAMEWORK                    THE WORLD
+   ---                      -------------                    ---------
+
+   configs/  ------------>  submit_run.py  --------------->  L2 network
+   (what to run)            (sends transactions)             (zkSync / OP)
+                                  |
+                                  | writes rows
+                                  v
+                            results/*.jsonl  <-- the single source of truth
+                                  ^
+                                  | fills in t2, t3
+                                  |
+   cron  ---------------->  resolve_run.py  <---------------  Ethereum L1
+   (hourly)                 (reads settlement)                (batch + proof)
+                                  |
+                                  v
+                            check_data.py
+                            (are the rows possible?)
+                                  |
+                                  v
+                       export.py / analysis/figures.py
+                                  |
+                                  v
+                            CSV + PNG + PDF
+</pre>
+
+<p>Three layers, and the rule between them:</p>
+
+<table class="grid">
+  <tr><th style="width:130px">Layer</th><th style="width:150px">Folder</th><th>Rule</th></tr>
+  <tr><td>Entry points</td><td><code>bench/*.py</code></td><td>Commands you run. No logic lives here, only orchestration</td></tr>
+  <tr><td>Core</td><td><code>bench/core/</code></td><td>Never knows which rollup it is talking to</td></tr>
+  <tr><td>Adapters</td><td><code>bench/adapters/</code></td><td>The only place per-rollup knowledge exists</td></tr>
+</table>
+
+<h2>3 · The submit pass, step by step</h2>
+
+<p>Command: <code>python -m bench.submit_run -n zksync_sepolia -w native_transfer -c 50</code></p>
+
+<div class="step"><span class="n">1</span><span class="what">Read config.</span>
+Load <code>networks.yaml</code> for the endpoint and expected chain ID, and
+<code>workloads.yaml</code> for what to send. Nothing is hardcoded.</div>
+
+<div class="step"><span class="n">2</span><span class="what">Refuse read-only networks.</span>
+If the network is marked <code>readonly: true</code> (mainnet), stop here. The
+repository holds a funded key; this stops a typo spending real money.</div>
+
+<div class="step"><span class="n">3</span><span class="what">Connect and verify.</span>
+Open the endpoint and check the chain ID matches config. A mismatch aborts — an
+endpoint pointing at the wrong chain gives plausible results about the wrong
+system.</div>
+
+<div class="step"><span class="n">4</span><span class="what">Build the batch.</span>
+Make 50 transaction dictionaries. Selectors come from the committed ABI and
+arguments go through the ABI encoder; no calldata is ever assembled by hand.</div>
+
+<div class="step"><span class="n">5</span><span class="what">Record the L1 gas price.</span>
+Read Ethereum's gas price once, now. Comparing two runs made under very
+different L1 conditions is not a comparison, so the condition travels with the
+data.</div>
+
+<div class="step"><span class="n">6</span><span class="what">Assign nonces.</span>
+Fetch the account's transaction count <em>once</em>, then number the batch
+<code>base, base+1, base+2…</code> locally. Asking the node per transaction gives
+several of them the same number and all but one is rejected.</div>
+
+<div class="step"><span class="n">7</span><span class="what">Estimate gas.</span>
+Estimate on the first transaction and reuse it across an identical batch —
+fifty estimates would be fifty round trips for the same answer.</div>
+
+<div class="step"><span class="n">8</span><span class="what">Sign, then record t₀, then broadcast.</span>
+In that order, per transaction. t₀ is taken immediately before the send and
+after every local cost, so nothing local is blamed on the network.</div>
+
+<div class="step"><span class="n">9</span><span class="what">On failure, record the failure.</span>
+If the node refuses, write a row with <code>outcome: rejected</code>, the reason,
+and <strong>hash left empty</strong>. A fabricated hash would make every later
+measurement look plausible and mean nothing.</div>
+
+<div class="step"><span class="n">10</span><span class="what">Append rows to disk.</span>
+One JSON object per line into <code>results/&lt;run_id&gt;.jsonl</code>. Written
+now, before waiting for anything, so a crash loses nothing.</div>
+
+<div class="step"><span class="n">11</span><span class="what">Poll for receipts, round-robin.</span>
+Ask about every pending transaction in turn, sleep, repeat. Waiting out
+transaction 1 before first asking about transaction 50 would add that whole wait
+to transaction 50's latency.</div>
+
+<div class="step"><span class="n">12</span><span class="what">Record t₁ and the outcome.</span>
+Receipt status 1 is <code>success</code>, status 0 is <code>reverted</code>, no
+receipt in 120 s is <code>timeout</code> — a failure with a reason, never a very
+large latency.</div>
+
+<div class="step"><span class="n">13</span><span class="what">Check the nonce advanced.</span>
+Re-read the transaction count. If it moved less than expected, a transaction was
+dropped, which leaves a gap that stalls everything behind it.</div>
+
+<div class="step"><span class="n">14</span><span class="what">Rewrite the file and exit.</span>
+Rows now carry t₁. <strong>The program stops here</strong> — it never waits for
+settlement, which can take days.</div>
+
+<h2 class="break">4 · The resolve pass, step by step</h2>
+
+<p>Command: <code>python -m bench.resolve_run</code>. Safe to run any number of
+times; safe to kill at any moment.</p>
+
+<div class="step"><span class="n">1</span><span class="what">Read every run file.</span>
+Rows are normalised to the current schema on load, so a file written before a
+field existed still reads as a proper table.</div>
+
+<div class="step"><span class="n">2</span><span class="what">Decide what is outstanding.</span>
+A row needs work if it is missing t₂ or t₃, or lacks its batch identity. Rejected
+and timed-out rows are finished — they have no batch to wait for. This is
+recomputed from the file every pass, so nothing is remembered between runs.</div>
+
+<div class="step"><span class="n">3</span><span class="what">Pick the adapter.</span>
+By the network's <code>family</code> field: <code>zk</code> or
+<code>optimistic</code>. Raises if none exists rather than returning empty rows
+that look like "not settled yet".</div>
+
+<div class="step"><span class="n">4</span><span class="what">Ask the adapter where it settled.</span>
+Same call for every architecture:
+<code>settlement(w3_l2, w3_l1, network, tx_hash)</code>. What comes back is a
+<code>Settlement</code> — the L1 hashes, the batch, and how each was arrived
+at.</div>
+
+<div class="step"><span class="n">5</span><span class="what">Turn hashes into times.</span>
+For each L1 hash: fetch the transaction, read its block number, fetch the block,
+take its timestamp. Cached per hash, because a hundred of our rows usually share
+two L1 transactions.</div>
+
+<div class="step"><span class="n">6</span><span class="what">Refuse impossible values.</span>
+A settlement time earlier than t₀ is rejected and reported — a batch posted
+before our transaction existed cannot contain it.</div>
+
+<div class="step"><span class="n">7</span><span class="what">Write the file back atomically.</span>
+To a temporary file, then move it into place, so an interrupted pass cannot
+leave half a run file.</div>
+
+<h3>How the two adapters differ</h3>
+
+<table class="grid">
+  <tr><th style="width:80px"></th><th style="width:210px">ZK rollup (zkSync)</th><th>Optimistic rollup (OP)</th></tr>
+  <tr><td><strong>t₂</strong></td>
+      <td>Ask the rollup: receipt → batch number → batch details → commit hash.
+      <em>Observed.</em></td>
+      <td>No such mapping exists. Read the L2 block's L1 origin, then scan
+      Ethereum forward for the batcher's next posting. <em>Estimated.</em></td></tr>
+  <tr><td><strong>t₃</strong></td>
+      <td>The proof-verification transaction's block timestamp.
+      <em>Observed</em> — a real event.</td>
+      <td>Find the dispute game covering the block, add the challenge period
+      read from the portal. <em>Derived</em> — a deadline; nothing happens at
+      that moment.</td></tr>
+  <tr><td><strong>cost</strong></td>
+      <td>Batch cost ÷ the batch's own transaction count, which the rollup
+      exposes.</td>
+      <td><em>Unavailable.</em> The count is not exposed, so there is no
+      denominator. Reported as unavailable, never guessed.</td></tr>
+</table>
+
+<div class="callout">
+  <div class="label">Why the difference is carried in the data</div>
+  <p>Every timestamp is stored with a <code>_kind</code>: observed, estimated or
+  derived. A proof verified in an Ethereum block and a challenge window that
+  quietly expires are not the same kind of fact, and a table that prints them in
+  the same column without saying so is misleading. The figures draw observed
+  values solid and derived values dashed for the same reason.</p>
+</div>
+
+<h2>5 · The data model</h2>
+
+<p>One row per transaction, one file per run, one JSON object per line. This file
+is the only state the system has.</p>
+
+<pre>
+{
+  "run_id":        "zk_native_n50__rep2__20260811-0917",   which experiment cell
+  "network":       "zksync_sepolia",
+  "workload":      "native_transfer",
+  "hash":          "0x32d4…",        the L2 transaction. Never invented.
+  "nonce":         2,
+
+  "t0":            1786349530.6,     we broadcast          <-- submit pass
+  "t1":            1786349531.2,     we saw the receipt    <-- submit pass
+  "t2":            1786351356,       batch posted to L1    <-- resolve pass
+  "t3":            1786352028,       batch proven          <-- resolve pass
+
+  "t2_kind":       "observed",       or "estimated"
+  "t3_kind":       "observed",       or "derived"
+  "l1_commit_tx":  "0xc090…",        anyone can open these
+  "l1_prove_tx":   "0x27c4…",
+  "batch":         21623,
+  "batch_tx_count": 875,             everyone's, not just ours
+
+  "outcome":       "success",        success | reverted | timeout | rejected
+  "gas_used":      90916,            from the receipt, never an estimate
+  "l1_gas_price_wei": 1095000000     L1 conditions at submission
+}
+</pre>
+
+<h3>Two rules about this shape</h3>
+
+<ul>
+  <li><strong>Only absolute timestamps are stored — never durations.</strong>
+  Every latency is computed as t_n − t₀ at analysis time. An arithmetic mistake
+  then costs a re-export, not a repeat of the experiment.</li>
+  <li><strong>Prices are applied at analysis time too.</strong> Rows hold gas and
+  wei; dollars are derived. When the ETH rate turned out to be wrong by a factor
+  of two, fixing every cost figure took one command.</li>
+</ul>
+
+<h3>The life of a row</h3>
+
+<pre>
+   built ──> submitted ──> success ──> +t2 ──> +t3 ──> done
+               │              ^
+               │              │
+               ├──> rejected  │   (node refused; no hash; finished)
+               ├──> reverted ─┘   (on chain, failed; counted, not measured)
+               └──> timeout       (no receipt in 120s; finished)
+</pre>
+
+<h2 class="break">6 · Configuration drives everything</h2>
+
+<table class="grid">
+  <tr><th style="width:130px">File</th><th>Controls</th></tr>
+  <tr><td><code>networks.yaml</code></td><td>Endpoints, chain IDs, explorers, L1 contract addresses, which chains are read-only</td></tr>
+  <tr><td><code>workloads.yaml</code></td><td>The two workloads, the recipient, the deployed token per network</td></tr>
+  <tr><td><code>matrix.yaml</code></td><td>Which combinations to run, how many repetitions, the minimum gap between them</td></tr>
+  <tr><td><code>pricing.yaml</code></td><td>The ETH/USD rate, when it was fetched and from where</td></tr>
+  <tr><td><code>accounts.yaml</code></td><td>The test address and how each network was funded</td></tr>
+  <tr><td><code>.env</code></td><td>The private key and any endpoint overrides. Never committed</td></tr>
+</table>
+
+<p><code>check_config.py</code> exists to prove none of these keys is decorative:
+it fails if any key is parsed and then never read. A setting you can change with
+no effect is the worst kind of bug in a benchmark, because the run still
+completes and the number does not move.</p>
+
+<h2>7 · What stops the system lying</h2>
+
+<table class="grid">
+  <tr><th style="width:160px">Guard</th><th style="width:120px">Where</th><th>Stops</th></tr>
+  <tr><td>No fabricated hashes</td><td><code>core/submit.py</code></td><td>A failed send producing a fake ID that later code polls forever</td></tr>
+  <tr><td>Chain ID check</td><td><code>core/networks.py</code></td><td>Measuring the wrong network and never knowing</td></tr>
+  <tr><td>Stale endpoint check</td><td><code>check_funds.py</code></td><td>An RPC that answers correctly but serves week-old state</td></tr>
+  <tr><td>Read-only networks</td><td><code>submit_run</code>, <code>deploy_token</code></td><td>A typo spending real money on mainnet</td></tr>
+  <tr><td>Timestamp plausibility</td><td><code>core/settle.py</code></td><td>Settlement recorded as happening before submission</td></tr>
+  <tr><td>Invariant check</td><td><code>check_data.py</code></td><td>Impossible rows surviving into a figure</td></tr>
+  <tr><td>Dead config check</td><td><code>check_config.py</code></td><td>Settings that silently do nothing</td></tr>
+</table>
+
+<div class="callout">
+  <div class="label">Why so many checks</div>
+  <p>Both data bugs this project has had produced <em>plausible numbers</em>
+  rather than crashes — a settlement time nine seconds before submission, and 196
+  transactions given a finality timestamp 209 days before they were sent.
+  Neither raised an error. Both were caught by a person noticing an odd median,
+  which is luck rather than a control. The invariant check now runs on every
+  hourly tick so the next one is caught by the machine.</p>
+</div>
+
+<h2>8 · Unattended operation</h2>
+
+<p>One cron line: <code>17 * * * * bench/collect.sh</code></p>
+
+<div class="step"><span class="n">1</span><span class="what">Submit one overdue cell.</span>
+<code>run_matrix --next</code> picks the cell with the fewest repetitions and
+refuses any run less than 60 minutes after that cell's last one. Five runs back
+to back would measure a single moment five times.</div>
+
+<div class="step"><span class="n">2</span><span class="what">Resolve whatever has settled.</span>
+Separate from submitting, because settlement takes half an hour on a ZK rollup
+and seven days on an optimistic one.</div>
+
+<div class="step"><span class="n">3</span><span class="what">Check the invariants.</span>
+Any violation is shouted into the log with an instruction not to trust figures
+built from those rows.</div>
+
+<div class="step"><span class="n">4</span><span class="what">Exit.</span>
+Nothing loops. A missed hour means the next tick picks up the most overdue cell;
+a machine asleep for six hours is six ticks behind, not broken.</div>
+
+<h2>9 · Adding another rollup</h2>
+
+<p>The design is judged by how little this takes.</p>
+
+<ol>
+  <li>Add an entry to <code>networks.yaml</code> — endpoint, chain ID, explorer,
+  which L1 it settles on, its <code>family</code>.</li>
+  <li>If <code>family</code> is one that already exists, <strong>stop. It
+  works.</strong></li>
+  <li>Otherwise add one file to <code>adapters/</code> with a single method
+  returning a <code>Settlement</code>.</li>
+  <li>Register it in the family map.</li>
+</ol>
+
+<p>Nothing in <code>core/</code> changes, because nothing in <code>core/</code>
+knows what a rollup is. That is what let the same workload run unmodified across
+two architectures that disagree about what finality even means.</p>
+
+<h2>10 · Every command</h2>
+
+<table class="grid">
+  <tr><th style="width:210px">Command</th><th>Does</th></tr>
+  <tr><td><code>bench.create_wallet</code></td><td>Make the test account</td></tr>
+  <tr><td><code>bench.check_funds</code></td><td>Balances, chain IDs, stale endpoints, what to do next</td></tr>
+  <tr><td><code>bench.deploy_token</code></td><td>Compile and deploy the ERC-20; <code>--dry-run</code> asks if the chain will take it</td></tr>
+  <tr><td><code>bench.check_workloads</code></td><td>Gas-estimate both workloads without sending</td></tr>
+  <tr><td><code>bench.submit_run</code></td><td>Send a batch, record t₀ and t₁</td></tr>
+  <tr><td><code>bench.resolve_run</code></td><td>Fill in t₂ and t₃</td></tr>
+  <tr><td><code>bench.run_matrix</code></td><td>The experiment plan; <code>--next</code>, <code>--paired</code></td></tr>
+  <tr><td><code>bench.observe_mainnet</code></td><td>Read production cadence, send nothing</td></tr>
+  <tr><td><code>bench.fetch_price</code></td><td>Fetch and record the ETH rate with its sources</td></tr>
+  <tr><td><code>bench.export</code></td><td>Raw CSV, summary, assumptions, comparison table</td></tr>
+  <tr><td><code>bench.analysis.figures</code></td><td>The four figures, each with a CSV</td></tr>
+  <tr><td><code>bench.analysis.reproducibility</code></td><td>Day-to-day variation</td></tr>
+  <tr><td><code>bench.check_data</code></td><td>Are the rows possible?</td></tr>
+  <tr><td><code>bench.check_config</code></td><td>Does every setting do something?</td></tr>
+</table>
+
+<h2>11 · The shape in one paragraph</h2>
+
+<p>Configuration describes an experiment. A submitter turns it into real
+transactions and writes rows to a file, recording the moment of broadcast and the
+moment the sequencer acknowledged it, then exits within minutes. A resolver runs
+later and repeatedly, reading Ethereum to discover when each transaction's batch
+was posted and proven, and writing those times back into the same file. A checker
+asserts that the rows describe something possible. An exporter turns them into
+tables and figures, applying prices only at that final step. The file is the
+state, the adapters are the only per-rollup code, and every number keeps a record
+of how it was obtained — observed, estimated, or derived.</p>
+
+</body>
+</html>
