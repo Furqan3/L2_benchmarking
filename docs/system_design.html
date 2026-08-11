@@ -99,8 +99,8 @@ then reads Ethereum to find out what happened to it.</p>
 <em>submitter</em> and a <em>reader</em>, and they are separate programs.</p>
 
 <figure>
-  <img src="network_flow.svg" alt="Network flow">
-  <figcaption><strong>Figure 2.</strong> Six chains, two of which we write to.
+  <img src="network_flow.png" alt="Network flow">
+  <figcaption><strong>Figure 1.</strong> Six chains, two of which we write to.
   Everything else is read. The rollups publish their own batches and proofs to
   their L1 because their security depends on it; the study reads that evidence
   rather than producing any. Mainnet entries are flagged read-only and refuse a
@@ -110,8 +110,8 @@ then reads Ethereum to find out what happened to it.</p>
 <h2>2 · The big picture</h2>
 
 <figure>
-  <img src="system_diagram.svg" alt="System flow">
-  <figcaption><strong>Figure 1.</strong> Submission and resolution are two
+  <img src="system_diagram.png" alt="System flow">
+  <figcaption><strong>Figure 2.</strong> Submission and resolution are two
   separate programs joined only by a file. The submit pass finishes in minutes;
   the resolve pass runs hourly for as long as settlement takes — half an hour on
   a ZK rollup, seven days on an optimistic one. Neither knows the other exists.</figcaption>
