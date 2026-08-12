@@ -31,11 +31,40 @@
 set -uo pipefail
 
 REPO="/home/unk/projects/l2_benchmarking"
+LOCK="/tmp/l2_benchmark_collect.lock"
 PYTHON="/home/unk/.pyenv/versions/l2_bench/bin/python"
 LOG="$REPO/bench/results/collect.log"
 
 cd "$REPO" || exit 1
 mkdir -p "$REPO/bench/results"
+
+# Only one tick at a time. The jitter below can push a tick close to the next
+# hour, and two submitters against one public endpoint is how the first HTTP
+# 429 happened.
+exec 9>"$LOCK"
+flock -n 9 || { echo "$(date -u +%FT%TZ) tick skipped - one already running" >> "$REPO/bench/results/collect.log"; exit 0; }
+
+# Wait a random part of the hour before submitting.
+#
+#     WHY THIS MATTERS MORE THAN IT LOOKS
+#
+# Cron fires on a fixed minute. zkSync Sepolia commits its batches every 120
+# minutes. An hourly job at a fixed minute therefore only ever lands in TWO
+# points of that cycle, and the round-robin assigns cells to whichever hour
+# comes next - so which workload a cell holds became correlated with where in
+# the batch interval it was submitted.
+#
+# Measured over 1,269 settled zkSync rows: even-hour submissions waited a median
+# of 25.5 minutes for their batch, odd-hour submissions 87.2. That is not a
+# property of anything being measured. It made ERC-20 transactions appear to
+# settle 3.3x slower than native ones, which is impossible - a rollup does not
+# consult the workload when deciding to post a batch.
+#
+# A uniform delay across the hour decorrelates submission time from the clock,
+# so the batch interval is sampled evenly whatever its period.
+JITTER=$(( RANDOM % 3000 ))
+echo "$(date -u +%FT%TZ) tick waiting ${JITTER}s before submitting" >> "$REPO/bench/results/collect.log"
+sleep "$JITTER"
 
 stamp() { date -u +"%Y-%m-%dT%H:%M:%SZ"; }
 

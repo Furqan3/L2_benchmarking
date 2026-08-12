@@ -16,29 +16,39 @@ public networks and hosting no infrastructure of its own.
 Mitacs Globalink 2026, project 50081, **scalability** track. Supervisor:
 Prof. Sara Rouhani, TCDT Lab.
 
-- Task breakdown: [`L2_Implementation_Handbook.pdf`](L2_Implementation_Handbook.pdf)
-- What has been built and why: [`docs/L2_Benchmark_Project_Handbook.pdf`](docs/L2_Benchmark_Project_Handbook.pdf)
+### Documents
+
+| Document | Covers |
+|---|---|
+| [`docs/L2_Benchmark_Results.pdf`](docs/L2_Benchmark_Results.pdf) | Every measurement, all figures, threats to validity |
+| [`docs/L2_Benchmark_System_Design.pdf`](docs/L2_Benchmark_System_Design.pdf) | How the system works, step by step, with diagrams |
+| [`docs/L2_Benchmark_Reproduction_Log.pdf`](docs/L2_Benchmark_Reproduction_Log.pdf) | Every command, URL and amount — and everything that went wrong |
+| [`docs/L2_Benchmark_Project_Handbook.pdf`](docs/L2_Benchmark_Project_Handbook.pdf) | What was built and why, file by file |
+| [`L2_Implementation_Handbook.pdf`](L2_Implementation_Handbook.pdf) | The original 38-task brief |
+
+Diagrams live in `docs/` as both SVG and PNG: `finality_levels`, `system_diagram`,
+`network_flow`. All four PDFs regenerate with `python docs/build_handbook.py`.
 
 ## Results so far
 
-**1,265 transactions, 97.9% success**, across two rollup architectures, plus
-read-only observation of both chains' mainnets. 1,237 settled through `t3`
-across **eight distinct zkSync batches**.
+**1,487 transactions, 98.2% success**, across two rollup architectures, plus
+read-only observation of both chains' mainnets. 1,459 settled through `t3`
+across **ten distinct zkSync batches**.
 
 
 | Level | zkSync Era Sepolia | kind | OP Sepolia | kind | ratio |
 |---|---|---|---|---|---|
-| Full trust (`t1`) | 35.36 s | observed | 25.99 s | observed | comparable |
-| Partial trust (`t2`) | 25.29 min | observed | 1.90 min | *estimated* | OP **13.3x faster** |
-| Trustless (`t3`) | 35.82 min | observed | **7.01 days** | *derived* | OP **281x slower** |
+| Full trust (`t1`) | 35.4 s | observed | 26.8 s | observed | comparable |
+| Partial trust (`t2`) | 25.29 min | observed | 2.10 min | *estimated* | OP **12x faster** |
+| Trustless (`t3`) | 35.82 min | observed | **7.01 days** | *derived* | OP **282x slower** |
 
-Native transfer, medians over 487 and 323 successful transactions. **Snapshot as
-of 08:30 PKT on 11 Aug 2026** — collection runs hourly and these move as it
+Native transfer, medians over 487 and 434 successful transactions. **Snapshot as
+of 14:45 PKT on 11 Aug 2026** — collection runs hourly and these move as it
 accumulates. Regenerate with `python -m bench.export` and
 `python -m bench.analysis.figures`.
 
-At full trust the two architectures are **indistinguishable** — 18.90 s against
-18.89 s. OP then pulls sharply ahead at partial trust, because it posts batches
+At full trust the two architectures are **comparable** — 35.4 s against 26.8 s,
+and both start near 0.5 s for a single transaction. OP then pulls sharply ahead at partial trust, because it posts batches
 to L1 every few minutes rather than every half hour. And then it loses by more
 than two orders of magnitude at trustless finality.
 
@@ -279,11 +289,18 @@ per transaction, the primary artefact), `summary.csv` (derived, never a
 replacement), `assumptions.txt` (the ETH rate, its source, and every declared
 limitation) and `comparison.txt` (the cross-architecture table).
 
-### Documentation
+### Related work and documents
 
 ```sh
-python docs/build_handbook.py    # regenerate the project handbook PDF
+python -m bench.render_related_work           # the H1 comparison table
+python -m bench.render_related_work --strict  # exit 1 while any row is unverified
+python docs/build_handbook.py                 # regenerate all four PDFs
 ```
+
+`related_work.yaml` holds the comparison table. A row stays flagged unverified
+until its paper has been opened at the recorded DOI and every cell confirmed —
+a cell reading `unknown` renders as *unchecked*, which is not the same claim as
+*no*.
 
 ### Network keys
 
@@ -323,8 +340,6 @@ on a third party staying online.
 
 ## Timeline
 
-**Phases A–D are complete — the minimum viable deliverable.** E1 and E2 are done.
-
 | Phase | | Status |
 |---|---|---|
 | A | Unblock | **Done** — A1–A5 |
@@ -332,39 +347,43 @@ on a third party staying online.
 | C | The contribution | **Done** — C1–C6 |
 | D | Make it defensible | **Done** — D1–D5 |
 | E | The comparison | **Done** — E1–E3 |
-| F | Data collection | F1, F4 done; **F2 running hourly**, F3 partial |
-| G | Analysis | G1–G3 done; G4, G5 remaining |
-| H | Write and deliver | H1–H5 remaining |
+| F | Data collection | F1, F3, F4 done; **F2 at 34/60, running hourly** |
+| G | Analysis | **Done** — G1–G5 |
+| H | Write and deliver | H1 scaffolded; H2–H5 remaining |
 
-**31 of 38 tasks complete.**
+**32 of 38 tasks complete.** Everything except F2, which finishes itself, and
+the write-up.
 
 ### What remains, and why
 
 | Task | Blocked by |
 |---|---|
-| **F2** repetitions | Wall clock. 48 outstanding, one per hour by design — running them faster would measure one moment repeatedly |
-| **F3** batch sweep | **Done** — answered via the rollup's own batch-size variation |
-| **G4** reproducibility | **Done** — 12.1% median divergence between days |
-| **G5** threats to validity | Nothing. Not yet written |
-| **H1–H5** | You. H1 needs papers you have opened; H2/H4/H5 are yours to author |
+| **F2** repetitions | Wall clock. 26 outstanding at one per hour by design — running them faster would measure a single moment repeatedly. No intervention needed |
+| **H1** comparison table | Reading. Six papers, 42 cells. Four PDFs are already in `candada_research/` |
+| **H2** report | Authorship. Draws on the four documents above |
+| **H3** README test | A fresh clone, following only these instructions, fixing whatever breaks |
+| **H4** presentation | Authorship. Lead with `finality_levels.png`, then `g2_inversion.png` |
+| **H5** handover | Authorship. Most of its content is in the Reproduction Log |
 
-**F3's cost half cannot be measured observationally.** Seven runs of sizes 1
-through 50 all landed in zkSync batch 21623 alongside 875 other transactions,
-giving an identical per-transaction cost every time. Per-transaction cost is
-batch cost divided by the batch's own transaction count, and **we do not control
-that count** — the rollup batches everyone's traffic on its own schedule. The
-latency half is real and already visible. The honest version of the cost
-question is per-transaction cost against the *rollup's* batch size across many
-batches, which is what `observe_mainnet` reads.
+**A note on F3.** Varying *our own* batch size does not move per-transaction
+cost: seven runs of sizes 1 to 50 all landed in one zkSync batch of 875 and cost
+exactly the same each time, because the denominator is the rollup's batch count
+and we are a small minority of it. The question is answerable through the
+rollup's *own* variation instead — across ten settled batches from 617 to 1,737
+transactions, per-transaction cost falls **66%** and tracks 1/n closely. See
+`f3_batch_scaling.png`.
 
 ### Needs a human
 
-- Replace the `PLACEHOLDER` ETH rate in `bench/configs/pricing.yaml` with one
-  you actually looked up. Every dollar figure derives from it.
-- Fill in the `faucet:` provenance fields in `bench/configs/accounts.yaml` — the
-  report's experimental setup section needs them.
-- Decide on Polygon zkEVM Cardona: replace the stalled RPC, or drop the network.
-- An Etherscan API key, for F4. The V1 API is retired and V2 requires one.
+- **Fill in the `faucet:` fields** in `bench/configs/accounts.yaml`. Two entries
+  still read `TODO` — how Sepolia and OP Sepolia were funded. The report's
+  experimental setup needs them, and browser history is the only record.
+- **Decide on Polygon zkEVM Cardona**: replace the stalled RPC, or drop it.
+- **H1's citations.** Every cell must come from a paper opened at its DOI.
+
+The ETH rate is no longer a placeholder — `python -m bench.fetch_price` records
+it with both sources and a timestamp. Re-run it before any figure you intend to
+cite.
 
 ## What this framework does not measure
 

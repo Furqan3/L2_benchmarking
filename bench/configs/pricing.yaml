@@ -15,10 +15,10 @@
 # Changing eth_usd must change every reported cost. That is D2's done-when.
 
 eth_usd:
-  rate: 1878.11
-  recorded_at: '2026-08-11T04:31:49+00:00'
-  source: Mean of CoinGecko 1,878.11 and Coinbase 1,878.11, fetched 2026-08-11T04:31:49+00:00
-    by bench/fetch_price.py. Spread 0.00%.
+  rate: 1910.38
+  recorded_at: '2026-08-12T11:26:48+00:00'
+  source: Mean of CoinGecko 1,910.06 and Coinbase 1,910.69, fetched 2026-08-12T11:26:48+00:00
+    by bench/fetch_price.py. Spread 0.03%.
 notes: 'Costs computed from testnet L1 gas priced at a mainnet ETH rate are an illustration,
   not a measurement of what anyone paid. Say so wherever these figures appear.
 

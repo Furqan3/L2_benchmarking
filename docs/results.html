@@ -66,8 +66,8 @@ and what it is not.</p>
 <table class="grid">
   <tr><th style="width:130px">Field</th><th>Value</th></tr>
   <tr><td>Project</td><td>50081, scalability track — Mitacs Globalink 2026</td></tr>
-  <tr><td>Snapshot</td><td>11 August 2026, 09:31 PKT. Collection is ongoing; regenerate before citing</td></tr>
-  <tr><td>Dataset</td><td>1,275 transactions, 1,248 successful (97.9%), 1,237 settled through t₃</td></tr>
+  <tr><td>Snapshot</td><td>12 August 2026, 16:30 PKT. Collection complete — 5 repetitions of all 12 matrix cells</td></tr>
+  <tr><td>Dataset</td><td>2,485 transactions, 2,458 successful (98.9%), 2,348 settled through t₃, across 18 zkSync batches</td></tr>
   <tr><td>Networks</td><td>zkSync Era Sepolia, OP Sepolia — plus both mainnets and Ethereum, observed read-only</td></tr>
   <tr><td>Price basis</td><td>ETH/USD 1,878.11, fetched from CoinGecko and Coinbase, spread 0.00%</td></tr>
 </table>
@@ -95,17 +95,20 @@ over 487 and 323 successful transactions.</p>
       <th class="n" style="width:90px">OP Sepolia</th><th style="width:76px">kind</th><th>ratio</th></tr>
   <tr><td>Full trust (t₁)</td><td class="n">35.36 s</td><td>observed</td>
       <td class="n">25.99 s</td><td>observed</td><td>comparable</td></tr>
-  <tr><td>Partial trust (t₂)</td><td class="n">25.29 min</td><td>observed</td>
-      <td class="n">1.90 min</td><td>estimated</td><td>OP <strong>13.3× faster</strong></td></tr>
-  <tr><td>Trustless (t₃)</td><td class="n">35.82 min</td><td>observed</td>
-      <td class="n"><strong>7.01 days</strong></td><td>derived</td><td>OP <strong>281× slower</strong></td></tr>
+  <tr><td>Partial trust (t₂)</td><td class="n">~60 min</td><td>observed</td>
+      <td class="n">1.7 min</td><td>estimated</td><td>OP <strong>~35× faster</strong></td></tr>
+  <tr><td>Trustless (t₃)</td><td class="n">~70 min</td><td>observed</td>
+      <td class="n"><strong>7.01 days</strong></td><td>derived</td><td>OP <strong>~145× slower</strong></td></tr>
 </table>
 
 <p><strong>Which rollup is "faster" depends entirely on which trust assumption
 was meant.</strong> At full trust the two are within ten seconds of each other.
 The optimistic rollup then pulls sharply ahead at partial trust, because it posts
-batches to Ethereum every few minutes where zkSync posts roughly every half hour.
-And then it loses by more than two orders of magnitude at trustless finality.</p>
+batches to Ethereum every 4.4 minutes where zkSync commits every 120. And then it
+loses by more than two orders of magnitude at trustless finality.</p>
+
+<p>The zkSync partial and trustless figures are given as approximations
+deliberately. They are not constants — see §4.</p>
 
 <p>That crossover is what a single-number latency benchmark cannot show, and it
 is the result this project exists to produce.</p>
@@ -126,7 +129,50 @@ is the result this project exists to produce.</p>
   as though they were the same kind of fact.</p>
 </div>
 
-<h2>3 · Every latency measured</h2>
+<h2>3 · Partial-trust latency is not a single number</h2>
+
+<p>A rollup posts batches on its own schedule, so how long a transaction waits
+for its batch depends entirely on where in that cycle it was submitted. Submit
+just after a batch seals and you wait a full interval; submit just before and you
+wait almost none.</p>
+
+<table class="grid">
+  <tr><th style="width:250px">zkSync Era Sepolia</th><th class="n">value</th></tr>
+  <tr><td>batch commit interval, measured</td><td class="n">120.2 min</td></tr>
+  <tr><td>t₂ observed range</td><td class="n">12.8 – 90.3 min</td></tr>
+  <tr><td>t₂ median as collected</td><td class="n">27.8 min</td></tr>
+  <tr><td>t₂ median, phase-balanced</td><td class="n">45.9 min</td></tr>
+  <tr><td>expected wait for uniform submission (interval ÷ 2)</td><td class="n"><strong>60.1 min</strong></td></tr>
+</table>
+
+<div class="callout warn">
+  <div class="label">The 27.8 figure is biased, and the bias was ours</div>
+  <p>Collection ran hourly on a fixed minute while zkSync commits every 120
+  minutes, so submissions only ever landed at two points in that cycle — and the
+  round-robin tied which workload a cell held to which of the two it drew.
+  Even-hour submissions waited a median of 25.5 minutes for their batch;
+  odd-hour submissions waited 87.2. Two thirds of rows were even-hour.</p>
+  <p>The visible symptom was ERC-20 transactions appearing to settle 3.3× slower
+  than native ones, which is impossible: a rollup does not consult the workload
+  when deciding to post a batch. <strong>No workload difference in t₂ or t₃ is
+  reported here, because there is none.</strong></p>
+  <p>The scheduler now jitters its submission time so the cycle is sampled
+  evenly. The data already collected covers 5 of 12 phase bins, so even the
+  balanced figure understates: <strong>quote the range, or the
+  interval-derived 60 minutes, rather than any single observed median.</strong></p>
+</div>
+
+<p><strong>OP Sepolia is unaffected.</strong> It posts batches every 4.4 minutes,
+so an hourly sampler covers that cycle evenly regardless of phase — its balanced
+and raw medians agree to within 0.1 minutes. The correction applies only where
+the sampling period and the batch period are commensurate.</p>
+
+<p>This also explains G4's finding that settlement latency varies 20–66% between
+days while full-trust latency varies under 1%. It is the same effect: t₁ measures
+a sequencer accepting a transaction, t₂ measures where in a batch interval you
+happened to land.</p>
+
+<h2>4 · Every latency measured</h2>
 
 <p>All four cells of the workload matrix. Times in seconds unless marked.</p>
 
@@ -160,7 +206,7 @@ sequencer is working through, not by the workload.</p>
   with the half-hour one on the left.</figcaption>
 </figure>
 
-<h2 class="break">4 · Cost</h2>
+<h2 class="break">5 · Cost</h2>
 
 <p>Every figure comes from the <code>gasUsed</code> and
 <code>effectiveGasPrice</code> on the L1 receipts of the batch commit and proof
@@ -209,7 +255,7 @@ needs the L1 gas price recorded beside it — which every row carries.</p>
   three ways, for one batch.</figcaption>
 </figure>
 
-<h2>5 · Cost falls with batch size</h2>
+<h2>6 · Cost falls with batch size</h2>
 
 <p>Not with <em>our</em> batch size — that turned out to be unmeasurable — but
 with the rollup's own. Across eight settled batches whose sizes the rollup chose
@@ -239,7 +285,7 @@ looks like.</p>
   judged without any modelling being implied.</figcaption>
 </figure>
 
-<h2>6 · How much results vary between days</h2>
+<h2>7 · How much results vary between days</h2>
 
 <p>Eleven comparisons across cells run on more than one day. <strong>Median
 divergence 13.3%, worst 65.7%.</strong> The split matters more than the headline:</p>
@@ -257,7 +303,7 @@ on where in a batch interval the submission happened to fall, which is close to
 arbitrary. <strong>Settlement medians are the ones to treat with caution</strong>,
 and this is the number that says how much.</p>
 
-<h2>7 · Grounded against production</h2>
+<h2>8 · Grounded against production</h2>
 
 <p>Both mainnets observed read-only — sending nothing, spending nothing.</p>
 
@@ -283,7 +329,7 @@ windows; this one does not. That confirms against production what the testnet
 reading suggested, and it is the strongest support for treating every optimistic
 t₃ as derived.</p>
 
-<h2 class="break">8 · Failures</h2>
+<h2 class="break">9 · Failures</h2>
 
 <p>27 of 1,275 transactions failed. They are in the dataset with reasons, and
 latency statistics count successes only.</p>
@@ -296,7 +342,7 @@ latency statistics count successes only.</p>
 
 <p>Success rate <strong>97.9%</strong>, reported beside every latency figure.</p>
 
-<h2>9 · Threats to validity</h2>
+<h2>10 · Threats to validity</h2>
 
 <p>Every limitation known at the time of writing. Several were discovered by
 measurement rather than anticipated.</p>
@@ -316,6 +362,14 @@ measurement rather than anticipated.</p>
   our control, and one of them was found serving state 38 days stale.</li>
   <li><strong>Submission came from one machine in one geographic region</strong>,
   with one account.</li>
+  <li><strong>The batch cycle was sampled unevenly.</strong> Collection ran
+  hourly on a fixed minute against a 120-minute batch interval, so submissions
+  landed at only two points in that cycle and the data covers 5 of 12 phase
+  bins. Any single median of t₂ or t₃ on zkSync is therefore a statement about
+  which phases happened to be sampled, not about the network. Report the range,
+  or the interval-derived expectation. The scheduler now jitters its submission
+  time; OP Sepolia was never affected, its batch period being far shorter than
+  the sampling period.</li>
 </ul>
 
 <h3>The optimistic side is weaker than the ZK side</h3>
@@ -334,6 +388,15 @@ measurement rather than anticipated.</p>
   <li><strong>L1 cost on OP is unavailable</strong>, for the same reason as t₂.</li>
 </ul>
 
+<h3>Comparisons that must not be made from this data</h3>
+<ul>
+  <li><strong>Workload against t₂ or t₃.</strong> The rollup does not consult
+  the workload when deciding to post a batch, so there is no mechanism for one.
+  An apparent 3.3× difference in this dataset came entirely from the phase
+  confound above. The workload difference is real at t₁ and in gas — 83,513
+  against 122,434 on zkSync — and nowhere else.</li>
+</ul>
+
 <h3>Scope</h3>
 <ul>
   <li><strong>Peak throughput was not measured.</strong> Saturating a shared
@@ -348,7 +411,7 @@ measurement rather than anticipated.</p>
   rather than a measurement of what anyone paid.</li>
   <li><strong>Settlement repetitions are still accumulating.</strong> F2 is at
   29 of 60 repetitions. Percentiles on t₂ and t₃ will tighten.</li>
-  <li><strong>Blob DA cost is a Sepolia artefact</strong>, as noted in §4.</li>
+  <li><strong>Blob DA cost is a Sepolia artefact</strong>, as noted in §5.</li>
 </ul>
 
 <h3>Things that cannot be measured this way at all</h3>
@@ -363,7 +426,7 @@ measurement rather than anticipated.</p>
   control.</li>
 </ul>
 
-<h2>10 · How to check any number here</h2>
+<h2>11 · How to check any number here</h2>
 
 <p>Every row carries the hashes that produced it, so no figure has to be taken on
 trust.</p>
